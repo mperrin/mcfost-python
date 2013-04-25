@@ -54,7 +54,7 @@ class Paramfile(object):
 
         self.filename= filename
         self._readparfile(**kwargs)
-        self._dir=dir
+        self.directory=dir
 
 #    def __getattr__(self, key):
 #        stop()
