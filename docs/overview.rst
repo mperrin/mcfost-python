@@ -10,7 +10,7 @@ Working with Parameter Files
 
 Parameter files can be read into objects, manipulated, and written back out. Many parameters are accessible as object attributes::
 
-   >>> p = mcfostpy.Paramfile('/path/to/some_parameters.para')
+   >>> par = mcfostpy.Paramfile('/path/to/some_parameters.para')
    >>> par.version
    2.17
    >>> par.grid_nrad

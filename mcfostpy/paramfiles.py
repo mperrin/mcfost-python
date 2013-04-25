@@ -422,7 +422,14 @@ class Paramfile(object):
 
 
     def tostring(self):
-        """ Return a nicely formatted text parameter file """
+        """ Return a nicely formatted text parameter file. Currently returns v2.17 format
+
+        HISTORY
+        --------
+        2013-01-05 updated to version 2.15
+        2013-04-24 Substantial code rewrites & cleanup. Updated to version 2.17
+
+        """
         #par = self._dict
 
         #getkeys = lambda l: tuple([par[li] for li in l])
@@ -547,7 +554,7 @@ class Paramfile(object):
 
 
     def writeto(self, outname='sample.par'):
-        """ Write an MCFOST parameter file to disk. Currently outputs v2.15 param files
+        """ Write an MCFOST parameter file to disk. Currently outputs v2.17 param files
 
 
         WARNING: Not all parameters are allowed to vary, just the most useful ones. 
@@ -559,13 +566,6 @@ class Paramfile(object):
         ----------
         outname : string
             Output file name
-        pardict : dict
-            MCFOST parameter information as a nested set of dictionaries.
-
-
-        HISTORY
-        --------
-        2013-01-05 updated to version 2.15
 
         """
 
