@@ -5,7 +5,6 @@ import matplotlib.pyplot as pl
 import logging
 import glob
 _log = logging.getLogger('mcfostpy')
-logging.basicConfig(level=logging.INFO)
 
 # this lets you put "stop()" in your code to have a debugger breakpoint
 from IPython.core.debugger import Tracer; stop = Tracer()
@@ -67,7 +66,7 @@ class Paramfile(object):
         # enable dict-like access as well, for convenience
         return self.__dict__[key]
 
-    def _readparfile(self, silent=False,return_text=False,verbose=True):
+    def _readparfile(self, silent=False,return_text=False,verbose=False):
         """
         Read in an MCFOST par file into a dictionary.
 
@@ -421,8 +420,7 @@ class Paramfile(object):
         # done reading in parameter file
 
 
-
-    def tostring(self):
+    def __str__(self):
         """ Return a nicely formatted text parameter file. Currently returns v2.17 format
 
         HISTORY
@@ -572,7 +570,7 @@ class Paramfile(object):
 
 
         outfile = open(outname, 'w')
-        outfile.write(self.tostring())
+        outfile.write( str(self))
         outfile.close()
         print "  ==>> "+outname
 
