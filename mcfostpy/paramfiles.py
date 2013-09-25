@@ -3,8 +3,8 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as pl
 import logging
-_log = logging.getLogger('mcfost')
-logging.basicConfig(level=logging.INFO)
+import glob
+_log = logging.getLogger('mcfostpy')
 
 # this lets you put "stop()" in your code to have a debugger breakpoint
 from IPython.core.debugger import Tracer; stop = Tracer()
@@ -38,7 +38,7 @@ class Paramfile(object):
 
 
     """
-    def __init__(self, filename=None, dir="./", **kwargs):
+    def __init__(self, filename=None, directory="./", **kwargs):
 
         # we jump through some hurdles here to allow the
         # user to provide either a filename OR a directory
@@ -49,12 +49,14 @@ class Paramfile(object):
                 dir=filename
                 filename=None
             dir = os.path.dirname(filename)
-        if filename is None and dir is not None:
-            filename = get_current_paramfile(dir=dir)
+        if filename is None and directory is not None:
+            filename = find_paramfile(directory=directory)
+            if filename is None:
+                raise IOError("Could not find any MCFOST parameter file in directory={0}".format(directory))
 
         self.filename= filename
         self._readparfile(**kwargs)
-        self.directory=dir
+        self.directory=directory
 
 #    def __getattr__(self, key):
 #        stop()
@@ -64,7 +66,7 @@ class Paramfile(object):
         # enable dict-like access as well, for convenience
         return self.__dict__[key]
 
-    def _readparfile(self, silent=False,return_text=False,verbose=True):
+    def _readparfile(self, silent=False,return_text=False,verbose=False):
         """
         Read in an MCFOST par file into a dictionary.
 
@@ -76,8 +78,6 @@ class Paramfile(object):
 
         Parameters
         ----------
-        filename, dir: string
-            input file and dir. Leave filename blank to search in dir.
         return_text : bool
             Return the entire parfile text as an entry in the dict
         """
@@ -211,14 +211,14 @@ class Paramfile(object):
         # compute or look up wavelength solution
         if self.lcomplete_flag:
             # use log sampled wavelength range
-            wavelengths_inc=np.exp( np.log(self.wavelengths_max)/self.wavelengths_min)/(self.nwavelengths)
+            wavelengths_inc=np.exp( np.log(self.wavelengths_max/self.wavelengths_min)/(self.nwavelengths) )
             self.wavelengths = self.wavelengths_min * wavelengths_inc**(np.arange(self.nwavelengths)+0.5)
         else:
             # load user-specified wavelength range from file
             self.wavelengths_file = get1part(11,1)
             possible_wavelengths_files = [ 
-                os.path.join(dir, self.wavelengths_file), 
-                os.path.join(dir,"data_th",self.wavelengths_file), 
+                os.path.join(self._directory, self.wavelengths_file), 
+                os.path.join(self._directory,"data_th",self.wavelengths_file), 
                 os.path.join(os.getenv('MCFOST_UTILS'),'Lambda',self.wavelengths_file) ]
             wavelengths_file = None
             for possible_name in possible_wavelengths_files:
@@ -420,8 +420,7 @@ class Paramfile(object):
         # done reading in parameter file
 
 
-
-    def tostring(self):
+    def __str__(self):
         """ Return a nicely formatted text parameter file. Currently returns v2.17 format
 
         HISTORY
@@ -527,15 +526,15 @@ class Paramfile(object):
       """.format(dust = self.density_zones[0]['dust'][0])
       
         template+=""" 
-    #Molecular RT settings
-      T T T 15.              lpop, laccurate_pop, LTE, profile width
-      0.2                    v_turb (delta)
-      1                      nmol
-      co@xpol.dat 6          molecular data filename, level_max
-      1.0 50                 vmax (m.s-1), n_speed
-      T 1.e-6 abundance.fits.gz   cst molecule abundance ?, abundance, abundance file
-      T  3                   ray tracing ?,  number of lines in ray-tracing
-      1 2 3                  transition numbers
+#Molecular RT settings
+  T T T 15.              lpop, laccurate_pop, LTE, profile width
+  0.2                    v_turb (delta)
+  1                      nmol
+  co@xpol.dat 6          molecular data filename, level_max
+  1.0 50                 vmax (m.s-1), n_speed
+  T 1.e-6 abundance.fits.gz   cst molecule abundance ?, abundance, abundance file
+  T  3                   ray tracing ?,  number of lines in ray-tracing
+  1 2 3                  transition numbers
       """ 
 
         #starkeys = lambda l: tuple([self.star][li] for li in l])
@@ -571,25 +570,27 @@ class Paramfile(object):
 
 
         outfile = open(outname, 'w')
-        outfile.write(self.tostring())
+        outfile.write( str(self))
         outfile.close()
         print "  ==>> "+outname
 
 
 
 
-def get_current_paramfile(parfile=None, dir="./",verbose=False, wavelength=None):
+def find_paramfile(directory="./",  parfile=None, verbose=False, wavelength=None):
     """ Find a MCFOST par file in a specified directory
 
     By default, look in the current directory of a model,
-    but if a wavelength is specified, look inside the appropriate data_## directory
+    but if a wavelength is specified, look inside the appropriate data_## directory.
+
+    This looks for any file named 'something.par' or 'something.para'.
 
     KEYWORDS:
     wavelength : string
         string with wavelength name
     verbose :Boolean.
         whether to be more verbose in output
-    dir : string
+    directory : string
         directory to look in. Default is current directory
 
     """
@@ -598,12 +599,13 @@ def get_current_paramfile(parfile=None, dir="./",verbose=False, wavelength=None)
         # TODO validate its existence, check if path name relative to dir?
         output = parfile
     else:
-        if _VERBOSE: _log.info("Looking for par files in dir: "+dir)
-        dir = os.path.expanduser(dir)
+        if _VERBOSE: _log.info("Looking for par files in dir: "+directory)
+        directory = os.path.expanduser(directory)
         if wavelength is not None:
-            dir = dir+"/data_%s/" % wavelength
+            directory = os.path.join(directory, "data_%s" % wavelength)
             _log.info("Since wavelength is %s, looking in %s subdir" % (wavelength,dir))
-        l = glob.glob(dir+os.sep+"*.par")
+        l = glob.glob(os.path.join(directory, "*.par"))
+        l+= glob.glob(os.path.join(directory, "*.para"))
         if len(l) == 1:
             output = l[0]
         elif len(l) > 1:
@@ -617,4 +619,48 @@ def get_current_paramfile(parfile=None, dir="./",verbose=False, wavelength=None)
         _log.info('Par file found: '+str(output))
     return output
 
+
+def grid_generator(template_parfile, scale_height=None, dust_mass=None,
+        rin=None, rout=None, amin=None, amax=None, aexp=None,
+        rstar=None, tstar=None, 
+        alpha=None, beta=None, 
+        init_counter=1):
+    par = Paramfile(template_parfile)
+
+    #set up the arrays we are going to iterate over
+    if scale_height is None: scale_height = [ par['scale_height'] ]
+    if dust_mass is None: dust_mass  = [par['dust_mass']]
+    if r_in is None: r_in  = [par['r_in']]
+    if r_out is None: r_out  = [par['r_out']]
+    if amin is None: amin  = [par.density_zones[0]['dust'][0]['amin']]
+    if amax is None: amax  = [par.density_zones[0]['dust'][0]['amax']]
+    if aexp is None: aexp  = [par.density_zones[0]['dust'][0]['aexp']]
+    if alpha is None: alpha  = [par['alpha']]
+    if beta is None: beta  = [par['beta']]
+
+    model_id=init_counter
+
+    # massively nested set of for loops to iterate.
+
+    for scale_height_val in scale_height:
+     par['scale_height'] = scale_height_val
+     for dust_mass_val in dust_mass:
+      par['dust_mass'] = dust_mass_val
+      for r_in in r_in:
+       par['r_in'] =r_in_val
+       for r_out_val in r_out:
+        par['r_out'] =r_out_val
+        for amin_val in amin:
+         par.density_zones[0]['dust'][0]['amin'] = amin_val
+         for amax_val in amax:
+          par.density_zones[0]['dust'][0]['amax'] = amax_val
+          for aexp_val in aexp:
+           par.density_zones[0]['dust'][0]['aexp'] = aexp_val
+ 
+
+
+
+      # now actually output that model
+      par.writeto('{0}_{1:5d}'.format(prefix,model_id))
+      model_id+=1
 

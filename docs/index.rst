@@ -18,6 +18,9 @@ Contents
 
    overview.rst
    plots.rst
+   paramfile.rst
+   modelresults.rst
+   chisqr.rst
 
 Indices and tables
 ------------------

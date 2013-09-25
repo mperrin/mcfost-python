@@ -7,7 +7,7 @@ from .paramfiles import Paramfile
 from . import utils
 
 
-def plot_seds(parfilename=None,dir="./", overplot=False, nlabels=None, alpha=0.75,
+def plot_seds(parfile=None,dir="./", overplot=False, nlabels=None, alpha=0.75,
         inclination='all'):
     """
         Plot the SEDs for the current directory.
@@ -33,7 +33,13 @@ def plot_seds(parfilename=None,dir="./", overplot=False, nlabels=None, alpha=0.7
         inclination is closest to the specified floating point value)
 
     """
-    par = paramfiles.Paramfile(parfilename,dir)
+
+    if parfile is None:
+        parfilename = find_paramfile(dir)
+
+    if isinstance(parfile, basestring):
+        parfilename = parfile
+        par = paramfiles.Paramfile(parfilename,dir)
 
     if par.directory == './': title = parfilename
     else: title = dir
@@ -43,12 +49,12 @@ def plot_seds(parfilename=None,dir="./", overplot=False, nlabels=None, alpha=0.7
 
 
     # Try RT SED if it exists. If not, fall back to SED2 file instead
-    if os.path.exists(dir+os.sep+'data_th/sed_rt.fits.gz'):
+    if os.path.exists( os.path.join(dir,'data_th/sed_rt.fits.gz')):
         RayTraceModeSED = True
-        sed = fits.getdata(dir+os.sep+'data_th/sed_rt.fits.gz')
+        sed = fits.getdata( os.path.join(dir, 'data_th/sed_rt.fits.gz'))
     else:
         RayTraceModeSED = False
-        sed = fits.getdata(dir+os.sep+'data_th/sed2.fits.gz')
+        sed = fits.getdata(os.path.join(dir,'data_th/sed2.fits.gz'))
 
     lambd = par.wavelengths
 
@@ -73,7 +79,7 @@ def plot_seds(parfilename=None,dir="./", overplot=False, nlabels=None, alpha=0.7
                 label=None
             plt.loglog(lambd, flux, color=((ninc-inc)*1.0/ninc, 0, 0), label=label, alpha=alpha)
     else:
-        wmin = np.argmin( abs(par.im_inclinations] - inclination))
+        wmin = np.argmin( abs(par.im_inclinations) - inclination)
         print "Closest inclination found to %f is %f. " % (inclination, par.im_inclinations[wmin])
         label = "%4.1f$^o$" % (par.im_inclinations[wmin])
         flux = sed[0,phi-1,wmin,:]
@@ -132,12 +138,12 @@ def plot_lir_lstar(parfilename=None,dir="./", inclination=0):
     par = paramfiles.Paramfile(parfilename,dir)
 
     # Try RT SED if it exists. If not, fall back to SED2 file instead
-    if os.path.exists(dir+os.sep+'data_th/sed_rt.fits.gz'):
+    if os.path.exists(os.path.join(dir,'data_th/sed_rt.fits.gz')):
         RayTraceModeSED = True
-        sed = fits.getdata(dir+os.sep+'data_th/sed_rt.fits.gz')
+        sed = fits.getdata(os.path.join(dir,'data_th/sed_rt.fits.gz'))
     else:
         RayTraceModeSED = False
-        sed = fits.getdata(dir+os.sep+'data_th/sed2.fits.gz')
+        sed = fits.getdata(os.path.join(dir,'data_th/sed2.fits.gz'))
 
     lambd = par['lambda']
     phi=1
@@ -188,7 +194,7 @@ def plot_lir_lstar(parfilename=None,dir="./", inclination=0):
 
 
 
-def show_images(parfilename=None,dir="./", overplot=False, verbose=True, psf_fwhm=None, **kwargs):
+def plot_images(parfilename=None,dir="./", overplot=False, verbose=True, psf_fwhm=None, **kwargs):
     """
         Plot all available images for the current model
 
@@ -200,7 +206,7 @@ def show_images(parfilename=None,dir="./", overplot=False, verbose=True, psf_fwh
 
     if not overplot: plt.cla()
 
-    ims = glob.glob(dir+os.sep+"data_*/RT.fits.gz")
+    ims = glob.glob(os.path.join(dir,"data_*/RT.fits.gz"))
 
     wavelens =  [i[i.find('_')+1:i.find("/RT.fits.gz")] for i in ims]
     if verbose or _VERBOSE: _log.info("     Wavelengths found: "+str( wavelens))
@@ -208,10 +214,10 @@ def show_images(parfilename=None,dir="./", overplot=False, verbose=True, psf_fwh
 
     for w,ct in zip(wavelens, np.arange(len(wavelens))):
         plt.subplot(len(wavelens), len(wavelens), ct+1)
-        show_image(w, par=par, dir=dir, **kwargs)
+        plot_image(w, par=par, dir=dir, **kwargs)
 
 
-def show_image(wavelength, parfilename=None,par=None, dir="./", overplot=False, inclination=80, cmap=None, ax=None, 
+def plot_image(wavelength, parfilename=None,par=None, dir="./", overplot=False, inclination=80, cmap=None, ax=None, 
         polarization=False, polfrac=False,
         psf_fwhm=None, 
         vmin=None, vmax=None):
@@ -254,7 +260,7 @@ def show_image(wavelength, parfilename=None,par=None, dir="./", overplot=False, 
         cmap.set_under('black')
         cmap.set_bad('black')
 
-    rt_im = fits.getdata(dir+os.sep+"data_"+wavelength+os.sep+"RT.fits.gz")
+    rt_im = fits.getdata(os.path.join(dir,"data_"+wavelength,"RT.fits.gz"))
     inclin_index = _find_closest(par.im_inclinations, inclination)
     #print "using image %s, inc=%f" % (  str(inclin_index), par['im:inclinations'][inclin_index]  )
 
