@@ -3,7 +3,7 @@ __version__ = '0.01'
 # This file determines which functions are publicly exposed outside of this
 # package. Just import here any functions you want to share.
 
-from paramfiles import (Paramfile, find_paramfile)
+from paramfiles import (Paramfile, find_paramfile, grid_generator)
 from models import (ModelResults, Observations)
 
 
