@@ -16,7 +16,8 @@ _log = logging.getLogger('mcfostpy')
 #from . import plotting
 from .paramfiles import Paramfile, find_paramfile
 
-from .utils import NicerLogFormatter, find_closest, imshow_with_mouseover
+from .utils import find_closest, imshow_with_mouseover
+from . import utils
 
 
 class ModelImageLoader(object):
@@ -62,7 +63,7 @@ class ModelResults(object):
     """ One MCFOST model result set, possibly containing multiple inclinations 
     
     This class provides an object oriented interface to MCFOST model results, including SEDs 
-    and images. 
+    and images.  It also casts results so that the astropy.units framework can be used
     
     For now this class assumes all your model results have been precomputed. 
     I.e. it will not call mcfost itself to run anything new. 
@@ -109,14 +110,14 @@ class ModelResults(object):
 
     @property
     def image_wavelengths(self):
-        return self._wavelengths_lookup.values()
+        #return self._wavelengths_lookup.values()
+        return np.asarray(self._wavelengths_lookup.values(), dtype=float) * units.micron
 
 
 
     def __repr__(self):
         return "<MCFOST ModelResults in directory '{self.directory}'>".format(self=self)
    
-
     @property 
     def sed_data(self):
         """ Attribute that provides access to SED results data (from sed_rt.fits.gz files)
@@ -133,10 +134,16 @@ class ModelResults(object):
                 self._RayTraceModeSED = True
                 self._sed_data = fits.getdata( os.path.join(self.directory, 'data_th/sed_rt.fits.gz'))
                 _log.debug("loading SED data from RT mode SED")
-            else:
+                return self._sed_data * (units.W / units.m**2)
+            elif os.path.exists( os.path.join(self.directory,'data_th/sed2.fits.gz')):
                 self._RayTraceModeSED = False
                 self._sed_data = fits.getdata(os.path.join(self.directory,'data_th/sed2.fits.gz'))
                 _log.debug("loading SED data from MC mode SED") 
+                return self._sed_data * (units.W / units.m**2)
+            else:
+                _log.error("No SED data present in "+self.directory+"!")
+
+
 
     @property
     def sed_wavelengths(self):
@@ -214,14 +221,14 @@ class ModelResults(object):
         plt.xlabel("Wavelength ($\mu$m)")
         plt.ylabel("$\\nu F_\\nu$ (W m$^{-2}$)")
         plt.title("SED for "+title)
-        plt.gca().xaxis.set_major_formatter(NicerLogFormatter())
+        plt.gca().xaxis.set_major_formatter(utils.NicerLogFormatter())
 
 
     def plot_image(self, wavelength0, overplot=False, inclination=None, cmap=None, ax=None, 
             axes_units='AU',
             polarization=False, polfrac=False,
             psf_fwhm=None, 
-            vmin=None, vmax=None):
+            vmin=None, vmax=None, dynamic_range=1e6):
         """ Show one image from an MCFOST model
 
         Parameters
@@ -240,6 +247,8 @@ class ModelResults(object):
             Axis to display into.
         vmin, vmax :    scalars
             Min and max values for image display. Always shows in log stretch
+        dynamic_range : float
+            default vmin is vmax/dynamic range. Default dynamic range is 1e6.
         axes_units : str
             Units to label the axes in. May be 'AU', 'arcsec', 'deg', or 'pixels'
         psf_fwhm : float or None 
@@ -282,7 +291,7 @@ class ModelResults(object):
             cmap.set_under('black')
             cmap.set_bad('black')
         if vmax is None: vmax = image.max()
-        if vmin is None: vmin=vmax/1e8
+        if vmin is None: vmin=vmax/dynamic_range
         norm = matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax, clip=True)
 
 
@@ -388,6 +397,14 @@ class ModelResults(object):
                 cax = plt.axes([0.92, 0.25, 0.02, 0.5])
                 plt.colorbar(ax2.images[0], cax=cax, orientation='vertical')
 
+    def describe(self):
+        """ Return a descriptive brief paragraph on what results are present """
+        print "Model results for {self._paramfilename}".format(self=self)
+        if self.sed_data is None:
+            print "    No SED data present"
+        else:
+            print "    SED computed from {par.wavelengths_min} - {par.wavelengths_max} microns using {par.nwavelengths} wavelengths".format(par=self.parameters)
+        print "    Images computed for {0} wavelengths: {1}".format(len(self.image_wavelengths), self.image_wavelengths)
 
 
 
@@ -427,7 +444,7 @@ class Observations(object):
             parts = line.split()
             print i, parts
             filenames.append(parts[0])
-            types.append(parts[1])
+            types.append(parts[1].lower())
             wavelengths.append(parts[2] if len(parts) >= 3 else None)
             if parts[1].lower() == 'image': self.image_wavelengths.append(parts[2])
             elif parts[1].lower() == 'sed': self._sed_filename = parts[0]
@@ -488,7 +505,34 @@ class Observations(object):
         plt.xlabel("Wavelength ($\mu$m)")
         plt.ylabel("$\\nu F_\\nu$ (W m$^{-2}$)")
         plt.title(title)
-        plt.gca().xaxis.set_major_formatter(NicerLogFormatter())
+        plt.gca().xaxis.set_major_formatter(utils.NicerLogFormatter())
+
+    def plot_image(self, wavelength, overplot=False, cmap=None, ax=None, 
+            vmin=None, vmax=None, which='image'):
+        """
+        Display one image
+
+        Parameters
+        ----------
+        wavelength : float
+           desired wavelength to plot into 
+        overplot : bool:q
+
+
+        cmap : matplotlib color map
+            desired comor map
+        ax : matplotlib axis
+            axis to plot into
+        vmin, vmax : floats
+            min and max for image display range. 
+
+        """
+        wm = np.where( (self.types == which) and (self.wavelengths == wavelength0) )
+
+        imagefilename = self.filenames[wm]
+        print "Filename for image: "+imagefilename
+        raise NotImplementedError("Not implemented yet!")
+
 
 
 
