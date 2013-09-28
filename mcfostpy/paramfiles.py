@@ -9,9 +9,6 @@ _log = logging.getLogger('mcfostpy')
 # this lets you put "stop()" in your code to have a debugger breakpoint
 from IPython.core.debugger import Tracer; stop = Tracer()
 
-_VERBOSE = False
-
-
 # some extremely simple classes to serve as structs.
 
 class Star():
@@ -126,7 +123,7 @@ class Paramfile(object):
 
         set1part('version',0,1,float)
 
-        if verbose or _VERBOSE: _log.info("Parsing MCFOST parameter file version %.2f " % self.version)
+        _log.debug("Parsing MCFOST parameter file version %.2f " % self.version)
 
         # figure out line offsets of the fixed lookup table implemented below
         if float(self.version) >= 2.15:
@@ -222,10 +219,10 @@ class Paramfile(object):
                 os.path.join(os.getenv('MCFOST_UTILS'),'Lambda',self.wavelengths_file) ]
             wavelengths_file = None
             for possible_name in possible_wavelengths_files:
-                if _VERBOSE: _log.info("Checking for wavelengths file at "+possible_name)
+                _log.debug("Checking for wavelengths file at "+possible_name)
                 if os.path.exists(possible_name):
                     wavelengths_file=possible_name
-                    if _VERBOSE: _log.info("Found wavelengths file at "+wavelengths_file)
+                    _log.debug("Found wavelengths file at "+wavelengths_file)
                     break
 
             if not os.path.exists(wavelengths_file):
@@ -250,7 +247,7 @@ class Paramfile(object):
         dtor = np.pi/180
         if self.im_rt_centered:
             # find the average cos(i) in each bin (averaged linearly in cosine space)
-            a1 = np.linspace(np.cos(self.im_inc_max*dtor), np.cos(self.im_inc_min*dtor), self.im_ninc+1)
+            a1 = np.linspace(np.cos(self.im_rt_inc_max*dtor), np.cos(self.im_rt_inc_min*dtor), self.im_rt_ninc+1)
             a2 = (a1[0:-1]+a1[1:])/2
             self.inclinations = (np.arccos(a2)/dtor)[::-1]
         else:
@@ -576,7 +573,6 @@ class Paramfile(object):
 
 
 
-
 def find_paramfile(directory="./",  parfile=None, verbose=False, wavelength=None):
     """ Find a MCFOST par file in a specified directory
 
@@ -599,7 +595,7 @@ def find_paramfile(directory="./",  parfile=None, verbose=False, wavelength=None
         # TODO validate its existence, check if path name relative to dir?
         output = parfile
     else:
-        if _VERBOSE: _log.info("Looking for par files in dir: "+directory)
+        _log.debug("Looking for par files in dir: "+directory)
         directory = os.path.expanduser(directory)
         if wavelength is not None:
             directory = os.path.join(directory, "data_%s" % wavelength)
@@ -615,8 +611,7 @@ def find_paramfile(directory="./",  parfile=None, verbose=False, wavelength=None
             _log.error("No par files found!")
             output = None
 
-    if _VERBOSE: 
-        _log.info('Par file found: '+str(output))
+    _log.debug('Par file found: '+str(output))
     return output
 
 
