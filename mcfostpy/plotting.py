@@ -1,14 +1,21 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 import astropy.io.fits as fits
 import astropy.io.ascii as ioascii
+import os
+import logging
+_log = logging.getLogger('mcfostpy')
 
-from .paramfiles import Paramfile
+from . import paramfiles
 from . import utils
+from . import models
 
 
-def plot_seds(parfile=None,dir="./", overplot=False, nlabels=None, alpha=0.75,
-        inclination='all'):
+def plot_seds(parfile=None,dir="./", 
+        #overplot=False, nlabels=None, alpha=0.75,
+        #inclination='all', 
+        observed_sed_filename=None, **kwargs):
     """
         Plot the SEDs for the current directory.
 
@@ -34,101 +41,110 @@ def plot_seds(parfile=None,dir="./", overplot=False, nlabels=None, alpha=0.75,
 
     """
 
-    if parfile is None:
-        parfilename = find_paramfile(dir)
+    mr = models.ModelResults(dir)
+    mr.plot_SED( **kwargs)
 
-    if isinstance(parfile, basestring):
-        parfilename = parfile
-        par = paramfiles.Paramfile(parfilename,dir)
-
-    if par.directory == './': title = parfilename
-    else: title = dir
-
-    if not overplot:
-        plt.cla()
-
-
-    # Try RT SED if it exists. If not, fall back to SED2 file instead
-    if os.path.exists( os.path.join(dir,'data_th/sed_rt.fits.gz')):
-        RayTraceModeSED = True
-        sed = fits.getdata( os.path.join(dir, 'data_th/sed_rt.fits.gz'))
-    else:
-        RayTraceModeSED = False
-        sed = fits.getdata(os.path.join(dir,'data_th/sed2.fits.gz'))
-
-    lambd = par.wavelengths
-
-
-    # plot model SED for all inclinations
-    ninc = sed.shape[2]
-    phi = 1
-
-    if str(inclination)== 'all':
-        labelstep = 1 if nlabels is None else ninc/nlabels
-        for inc in range(ninc):
-            if RayTraceModeSED:
-                label = "%4.1f$^o$" % (par.im_inclinations[inc])
-            else:
-                incmin=np.arccos(1.-((inc)*1.0)/ninc)*180./3.1415926
-                incmax=np.arccos(1.-((inc+1  )*1.0)/ninc)*180./3.1415926
-                label = "%4.1f - %4.1f$^o$" % (incmin,incmax)
-
-
-            flux = sed[0,phi-1,inc,:]
-            if np.mod(inc,labelstep) !=0: # allow skipping some labels if many are present
-                label=None
-            plt.loglog(lambd, flux, color=((ninc-inc)*1.0/ninc, 0, 0), label=label, alpha=alpha)
-    else:
-        wmin = np.argmin( abs(par.im_inclinations) - inclination)
-        print "Closest inclination found to %f is %f. " % (inclination, par.im_inclinations[wmin])
-        label = "%4.1f$^o$" % (par.im_inclinations[wmin])
-        flux = sed[0,phi-1,wmin,:]
-        plt.loglog(lambd, flux, color=((ninc-wmin)*1.0/ninc, 0, 0), label=label, alpha=alpha)
-
-    plt.xlabel("$\lambda$ ($\mu$m)")
-    plt.ylabel("$\\nu F_\\nu$ (W m$^{-2}$)")
-    plt.title("SED for "+title)
-    plt.gca().xaxis.set_major_formatter(NicerLogFormatter())
-
-
-    # Do we have an observed SED to overplot?  
-    # Try looking in several different places for this file.
-
-    if observed_sed_filename is None:
-        possible_sed_files = [ os.path.join(dir, "observed_sed.txt"), 
-                os.path.join(dir, "data", "observed_sed.txt"), 
-                os.path.join("data", "observed_sed.txt"),
-                os.path.join("..", "data", "observed_sed.txt"),
-                os.path.join("..", "..", "data", "observed_sed.txt")]
-        for possible_name in possible_sed_files:
-            if _VERBOSE: _log.info("Checking for observed SED at "+possible_name)
-            if os.path.exists(possible_name):
-                observed_sed_filename=possible_name
-                if _VERBOSE: _log.info("Found observed SED at "+observed_sed_filename)
-                break
-
-    # if an observed SED is found, plot it.
-    if observed_sed_filename is not None and os.path.exists(observed_sed_filename):
-        #raise NotImplemented('Rewrite this with asciitable or atpy?')
-        #seddata = np.asarray(asciidata.open(observed_sed_filename)[0:3])
-        #obswavelen = seddata[0]
-        #flux = seddata[1]*(1.e-26)*(3.e14/obswavelen) # convert from Jy to nu Fnu in W m ^-2
-        #errflux=seddata[2]*(1.e-26)*(3.e14/obswavelen) #  convert from Jy to nu Fnu in W m ^-2
-
-        observed = ioascii.read(observed_sed_filename, Reader=asciitable.Tab)
-        flux = observed['Flux']*(1.e-26)*(3.e14/observed['Wavelen']) # convert from Jy to nu Fnu in W m ^-2
-        errflux=observed['Uncert']*(1.e-26)*(3.e14/observed['Wavelen']) #  convert from Jy to nu Fnu in W m ^-2
-
-        w_meas = np.where(flux > 0)
-        w_upper = np.where(  (np.isnan(flux) | (flux == 0)) & np.isfinite(errflux) )
-
-        plt.errorbar(observed['Wavelen'][w_meas], flux[w_meas], yerr=errflux[w_meas], label="Observed", color='blue', fmt='o')
-        plt.plot(observed['Wavelen'][w_upper], errflux[w_upper], 'rv')
-        #print(flux)
-
-    plt.legend(prop = {'size':10})
-    plt.draw()
-
+	#    if parfile is None:
+	#        parfile = paramfiles.find_paramfile(dir)
+	#
+	#    if isinstance(parfile, basestring):
+	#        parfilename = parfile
+	#        par = paramfiles.Paramfile(parfilename,dir)
+	#    else:
+	#        par = parfile
+	#
+	#    if par.directory == './': title = parfilename
+	#    else: title = dir
+	#
+	#    if not overplot:
+	#        plt.cla()
+	#
+	#
+	#    # Try RT SED if it exists. If not, fall back to SED2 file instead
+	#    if os.path.exists( os.path.join(dir,'data_th/sed_rt.fits.gz')):
+	#        RayTraceModeSED = True
+	#        sed = fits.getdata( os.path.join(dir, 'data_th/sed_rt.fits.gz'))
+	#    elif os.path.exists( os.path.join(dir,'data_th/sed2.fits.gz')):
+	#        RayTraceModeSED = False
+	#        sed = fits.getdata(os.path.join(dir,'data_th/sed2.fits.gz'))
+	#    elif ~ os.path.isdir(os.path.join(dir,'data_th/')):
+	#        raise IOError('Cannot find a data_th subdirectory inside '+dir)
+	#    else:
+	#        raise IOError('Cannot find either a sed_rt or sed2 file in data_th inside '+dir)
+	#
+	#    lambd = par.wavelengths
+	#
+	#
+	#    # plot model SED for all inclinations
+	#    ninc = sed.shape[2]
+	#    phi = 1
+	#
+	#    if str(inclination)== 'all':
+	#        labelstep = 1 if nlabels is None else ninc/nlabels
+	#        for inc in range(ninc):
+	#            if RayTraceModeSED:
+	#                label = "%4.1f$^o$" % (par.inclinations[inc])
+	#            else:
+	#                incmin=np.arccos(1.-((inc)*1.0)/ninc)*180./3.1415926
+	#                incmax=np.arccos(1.-((inc+1  )*1.0)/ninc)*180./3.1415926
+	#                label = "%4.1f - %4.1f$^o$" % (incmin,incmax)
+	#
+	#
+	#            flux = sed[0,phi-1,inc,:]
+	#            if np.mod(inc,labelstep) !=0: # allow skipping some labels if many are present
+	#                label=None
+	#            plt.loglog(lambd, flux, color=((ninc-inc)*1.0/ninc, 0, 0), label=label, alpha=alpha)
+	#    else:
+	#        wmin = np.argmin( abs(par.inclinations) - inclination)
+	#        print "Closest inclination found to %f is %f. " % (inclination, par.inclinations[wmin])
+	#        label = "%4.1f$^o$" % (par.inclinations[wmin])
+	#        flux = sed[0,phi-1,wmin,:]
+	#        plt.loglog(lambd, flux, color=((ninc-wmin)*1.0/ninc, 0, 0), label=label, alpha=alpha)
+	#
+	#    plt.xlabel("$\lambda$ ($\mu$m)")
+	#    plt.ylabel("$\\nu F_\\nu$ (W m$^{-2}$)")
+	#    plt.title("SED for "+title)
+	#    plt.gca().xaxis.set_major_formatter(utils.NicerLogFormatter())
+	#
+	#
+	#    # Do we have an observed SED to overplot?  
+	#    # Try looking in several different places for this file.
+	#
+	#    if observed_sed_filename is None:
+	#        possible_sed_files = [ os.path.join(dir, "observed_sed.txt"), 
+	#                os.path.join(dir, "data", "observed_sed.txt"), 
+	#                os.path.join("data", "observed_sed.txt"),
+	#                os.path.join("..", "data", "observed_sed.txt"),
+	#                os.path.join("..", "..", "data", "observed_sed.txt")]
+	#        for possible_name in possible_sed_files:
+	#            _log.debug("Checking for observed SED at "+possible_name)
+	#            if os.path.exists(possible_name):
+	#                observed_sed_filename=possible_name
+	#                _log.debug("Found observed SED at "+observed_sed_filename)
+	#                break
+	#
+	#    # if an observed SED is found, plot it.
+	#    if observed_sed_filename is not None and os.path.exists(observed_sed_filename):
+	#        #raise NotImplemented('Rewrite this with asciitable or atpy?')
+	#        #seddata = np.asarray(asciidata.open(observed_sed_filename)[0:3])
+	#        #obswavelen = seddata[0]
+	#        #flux = seddata[1]*(1.e-26)*(3.e14/obswavelen) # convert from Jy to nu Fnu in W m ^-2
+	#        #errflux=seddata[2]*(1.e-26)*(3.e14/obswavelen) #  convert from Jy to nu Fnu in W m ^-2
+	#
+	#        observed = ioascii.read(observed_sed_filename, Reader=asciitable.Tab)
+	#        flux = observed['Flux']*(1.e-26)*(3.e14/observed['Wavelen']) # convert from Jy to nu Fnu in W m ^-2
+	#        errflux=observed['Uncert']*(1.e-26)*(3.e14/observed['Wavelen']) #  convert from Jy to nu Fnu in W m ^-2
+	#
+	#        w_meas = np.where(flux > 0)
+	#        w_upper = np.where(  (np.isnan(flux) | (flux == 0)) & np.isfinite(errflux) )
+	#
+	#        plt.errorbar(observed['Wavelen'][w_meas], flux[w_meas], yerr=errflux[w_meas], label="Observed", color='blue', fmt='o')
+	#        plt.plot(observed['Wavelen'][w_upper], errflux[w_upper], 'rv')
+	#        #print(flux)
+	#
+	#    plt.legend(prop = {'size':10})
+	#    plt.draw()
+	#
 def plot_lir_lstar(parfilename=None,dir="./", inclination=0):
     """ Estimate L_IR/L_star for a model.
 
@@ -138,14 +154,18 @@ def plot_lir_lstar(parfilename=None,dir="./", inclination=0):
     par = paramfiles.Paramfile(parfilename,dir)
 
     # Try RT SED if it exists. If not, fall back to SED2 file instead
-    if os.path.exists(os.path.join(dir,'data_th/sed_rt.fits.gz')):
+    if os.path.exists( os.path.join(dir,'data_th/sed_rt.fits.gz')):
         RayTraceModeSED = True
-        sed = fits.getdata(os.path.join(dir,'data_th/sed_rt.fits.gz'))
-    else:
+        sed = fits.getdata( os.path.join(dir, 'data_th/sed_rt.fits.gz'))
+    elif os.path.exists( os.path.join(dir,'data_th/sed2.fits.gz')):
         RayTraceModeSED = False
         sed = fits.getdata(os.path.join(dir,'data_th/sed2.fits.gz'))
+    elif ~ os.path.isdir(os.path.join(dir,'data_th/')):
+        raise IOError('Cannot find a data_th subdirectory inside '+dir)
+    else:
+        raise IOError('Cannot find either a sed_rt or sed2 file in data_th inside '+dir)
 
-    lambd = par['lambda']
+    lambd = par.wavelengths
     phi=1
 
     try: 
@@ -194,7 +214,7 @@ def plot_lir_lstar(parfilename=None,dir="./", inclination=0):
 
 
 
-def plot_images(parfilename=None,dir="./", overplot=False, verbose=True, psf_fwhm=None, **kwargs):
+def plot_images(parfilename=None,dir="./", overplot=False, psf_fwhm=None, **kwargs):
     """
         Plot all available images for the current model
 
@@ -202,6 +222,7 @@ def plot_images(parfilename=None,dir="./", overplot=False, verbose=True, psf_fwh
 
 
     """
+    import glob
     par = paramfiles.Paramfile(parfilename,dir)
 
     if not overplot: plt.cla()
@@ -209,7 +230,7 @@ def plot_images(parfilename=None,dir="./", overplot=False, verbose=True, psf_fwh
     ims = glob.glob(os.path.join(dir,"data_*/RT.fits.gz"))
 
     wavelens =  [i[i.find('_')+1:i.find("/RT.fits.gz")] for i in ims]
-    if verbose or _VERBOSE: _log.info("     Wavelengths found: "+str( wavelens))
+    _log.debug("     Wavelengths found: "+str( wavelens))
 
 
     for w,ct in zip(wavelens, np.arange(len(wavelens))):
@@ -220,7 +241,7 @@ def plot_images(parfilename=None,dir="./", overplot=False, verbose=True, psf_fwh
 def plot_image(wavelength, parfilename=None,par=None, dir="./", overplot=False, inclination=80, cmap=None, ax=None, 
         polarization=False, polfrac=False,
         psf_fwhm=None, 
-        vmin=None, vmax=None):
+        vmin=None, vmax=None, dynamic_range=1e6):
     """ Show one image from an MCFOST model
 
     Parameters
@@ -238,6 +259,8 @@ def plot_image(wavelength, parfilename=None,par=None, dir="./", overplot=False, 
         Axis to display into.
     vmin, vmax :    scalars
         Min and max values for image display. Always shows in log stretch
+    dynamic_range : float
+        default vmin is vmax/dynamic range. Default dynamic range is 1e6.
     psf_fwhm : float or None 
         convolve with PSF of this FWHM? Default is None for no convolution
     parfilename : string, optional
@@ -261,7 +284,7 @@ def plot_image(wavelength, parfilename=None,par=None, dir="./", overplot=False, 
         cmap.set_bad('black')
 
     rt_im = fits.getdata(os.path.join(dir,"data_"+wavelength,"RT.fits.gz"))
-    inclin_index = _find_closest(par.im_inclinations, inclination)
+    inclin_index = utils.find_closest(par.inclinations, inclination)
     #print "using image %s, inc=%f" % (  str(inclin_index), par['im:inclinations'][inclin_index]  )
 
     #ax = plt.subplot(151)
@@ -270,7 +293,7 @@ def plot_image(wavelength, parfilename=None,par=None, dir="./", overplot=False, 
     #image.shape = image.shape[2:] # drop leading zero-length dimensions...
         vmax = image.max()
     if vmin is None:
-        vmin=vmax/1e8
+        vmin=vmax/dynamic_range
     norm = matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax, clip=True)
 
     if psf_fwhm is not None:
@@ -418,7 +441,7 @@ def plot_dust(dir='./', noerase=False):
     plt.xticks(np.arange(7)*30)
     if has_polar:
         for i in np.arange(polwaves.size):
-           c = _find_closest(lambd, polwaves[i])
+           c = utils.find_closest(lambd, polwaves[i])
            plt.plot(polar[:,c].ravel(), label=str(polwaves[i])+" $\mu$m" )
 
         prop = matplotlib.font_manager.FontProperties(size=10)
