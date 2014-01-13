@@ -1,4 +1,4 @@
-__version__ = '0.01'
+__version__ = '0.03'
 
 # This file determines which functions are publicly exposed outside of this
 # package. Just import here any functions you want to share.
