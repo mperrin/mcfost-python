@@ -31,7 +31,7 @@ The resulting object's attributes provide read/write access to all the settings 
     Distance: 200 pc
 
      
-This also includes some quantities which are computed from the parameters, not directly stated in the parameter file::
+There are also some readable quantities which are computed from the parameters, not directly stated in the parameter file::
 
    >>> print "Wavelengths", par.wavelengths
    >>> print "Inclinations in RT mode: ", par.inclinations
