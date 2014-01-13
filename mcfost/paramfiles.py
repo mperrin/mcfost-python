@@ -691,7 +691,7 @@ def find_paramfile(directory="./",  parfile=None, verbose=False, wavelength=None
         if len(l) == 1:
             output = l[0]
         elif len(l) > 1:
-            _log.warning("Multiple par files found... returning first")
+            _log.warning("Multiple par files found... returning first: "+l[0])
             output = l[0]
         else:
             _log.error("No par files found!")
