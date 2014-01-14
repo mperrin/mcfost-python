@@ -24,7 +24,7 @@ class Paramfile(object):
 
     """
 
-    _minimum_version = 2.17  # minimum MCFOST version for this code to run 
+    _minimum_version = 2.15  # minimum MCFOST version for this code to run 
     def __init__(self, filename=None, directory="./", **kwargs):
 
         # we jump through some hurdles here to allow the
@@ -149,8 +149,10 @@ class Paramfile(object):
 
         #-- Number of photon packages --
         lineptr = 3 
-        if (float(self.version) <= 2.15): 
+        if (float(self.version) < 2.15): 
             set1part( 'nbr_parallel_loop', lineptr, 1, int) ; lineptr+=1
+        else:
+            self.nbr_parallel_loop = 1
         set1part('nbr_photons_eq_th', lineptr, 1, float) ; lineptr+=1
         set1part('nbr_photons_lambda',lineptr, 1, float) ; lineptr+=1
         set1part('nbr_photons_image', lineptr, 1, float) ; lineptr+=3
@@ -198,9 +200,9 @@ class Paramfile(object):
         set1part('grid_n_rad_in', lineptr, 4, int) ; lineptr+=3
 
         #--  Maps (Images) --
-        set1part('im_nx',lineptr , 1 if float(self.version) > 2.15 else 3, int),
-        set1part('im_ny',lineptr , 2 if float(self.version) > 2.15 else 4, int),
-        if float(self.version) > 2.15:
+        set1part('im_nx',lineptr , 1 if float(self.version) >= 2.15 else 3, int),
+        set1part('im_ny',lineptr , 2 if float(self.version) >= 2.15 else 4, int),
+        if float(self.version) >= 2.15:
             set1part('im_map_size', lineptr , 3, float)
         lineptr+=1
         set1part('MC_n_incl',lineptr , 1, int if self.version >= 2.17 else float),
@@ -212,6 +214,8 @@ class Paramfile(object):
         set1part('distance', lineptr, 1, float) ; lineptr+=1
         if float(self.version) > 2.09:
             set1part('disk_pa', lineptr, 1, float) ; lineptr+=1  # only for > v2.09
+        else:
+            self.disk_pa = 0
         lineptr+=2
 
 
@@ -251,14 +255,24 @@ class Paramfile(object):
         set1part('l_axial_symmetry', lineptr, 1, bool) ; lineptr+=3
 
         #-- Disk physics / dust global properties --
-        set1part('dust_settling', lineptr, 1, int) 
+        if float(self.version) >2.15:
+            set1part('dust_settling', lineptr, 1, int) 
+        else:
+            # convert old T/F setting to current integer setting
+            set1part('dust_settling', lineptr, 1, bool)
+            self.dust_settling= 1 if self.dust_settling else 2
+
         set1part('settling_exp_strat' ,lineptr, 2,float) 
         set1part('settling_a_strat' ,lineptr, 3,float) ; lineptr +=1
         if float(self.version) >=2.19:
             set1part('l_radial_migration', lineptr, 1, bool) ; lineptr+=1
+        else:
+            self.l_radial_migration = False
         set1part('l_sublimate_dust' ,lineptr, 1, bool) ; lineptr+=1
         if float(self.version) >=2.19:
             set1part('l_hydrostatic_equilibrium', lineptr, 1, bool) ; lineptr+=1
+        else:
+            self.l_hydrostatic_equilibrium = False
         set1part('l_viscous_heating' ,lineptr, 1, bool) 
         set1part('alpha_viscosity' ,lineptr, 2, float) ; lineptr+=1
         lineptr+=2
@@ -298,6 +312,8 @@ class Paramfile(object):
             set1partOfDict(density, 'reference_radius', lineptr, 2, float)
             if self.version >= 2.19:
                 set1partOfDict(density, 'debris_disk_vertical_profile_exponent', lineptr, 3, float)
+            else:
+                density['debris_disk_vertical_profile_exponent'] = 2
             lineptr+=1
             set1partOfDict(density, 'r_in', lineptr, 1, float),
             set1partOfDict(density, 'edge', lineptr, 2 if self.version >=2.19 else (4 if self.version <2.15 else 3), float),
@@ -312,8 +328,8 @@ class Paramfile(object):
 
             set1partOfDict(density, 'flaring_exp', lineptr, 1, float) ; lineptr+=1
             set1partOfDict(density, 'surface_density_exp', lineptr, 1, float) 
-            if self.version >= 2.15:
-                set1partOfDict(density, 'gamma_exp', lineptr, 1, float)
+            if self.version > 2.15:
+                set1partOfDict(density, 'gamma_exp', lineptr, 2, float)
             else:
                 density['gamma_exp'] = 0.0
             lineptr+=3
@@ -616,7 +632,7 @@ class Paramfile(object):
   0.2                    v_turb (delta)
   1                      nmol
   co@xpol.dat 6          molecular data filename, level_max
-  1.0 50                 vmax (m.s-1), n_speed
+  1.0 50                 vmax (km.s-1), n_speed
   T 1.e-6 abundance.fits.gz   cst molecule abundance ?, abundance, abundance file
   T  3                   ray tracing ?,  number of lines in ray-tracing
   1 2 3                  transition numbers
