@@ -492,6 +492,14 @@ class Paramfile(object):
     def star(self):
         return self.stars[0]
 
+    @property
+    def density(self):
+        return self.density_zones[0]
+
+    @property
+    def dust(self):
+        return self.density_zones[0]['dust'][0]
+
     def __str__(self):
         """ Return a nicely formatted text parameter file. Currently returns v2.17 format
 
