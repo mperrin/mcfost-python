@@ -12,14 +12,12 @@ from . import utils
 from . import models
 
 
-def plot_seds(parfile=None,dir="./", 
-        #overplot=False, nlabels=None, alpha=0.75,
-        #inclination='all', 
+def plot_seds(dir="./", 
         observed_sed_filename=None, **kwargs):
     """
         Plot the SEDs for the current directory.
 
-    This assumes regular seds from MC, rather than the RT calculated seds with the -rt1 option.
+    This is just a convenience wrapper for the plotting code in ModelResults.
 
     Parameters
     -----------
@@ -30,10 +28,6 @@ def plot_seds(parfile=None,dir="./",
     observed_sed_filename : string or None
         Filename for observed SED to overplot. If None, will automatically check
         several plausible filenames + paths.
-    nlabels : int or None
-        limit the number of inclination labels in the legend? set to None to show all (default)
-    alpha : float
-        Transparency for plots
     inclination : string 'all' or float
         'all' to plot all inclinations, else just the
         desired inclination (specifically the SED whose 
@@ -42,109 +36,10 @@ def plot_seds(parfile=None,dir="./",
     """
 
     mr = models.ModelResults(dir)
-    mr.plot_SED( **kwargs)
+    mr.sed.plot( **kwargs)
 
 	#    if parfile is None:
-	#        parfile = paramfiles.find_paramfile(dir)
-	#
-	#    if isinstance(parfile, basestring):
-	#        parfilename = parfile
-	#        par = paramfiles.Paramfile(parfilename,dir)
-	#    else:
-	#        par = parfile
-	#
-	#    if par.directory == './': title = parfilename
-	#    else: title = dir
-	#
-	#    if not overplot:
-	#        plt.cla()
-	#
-	#
-	#    # Try RT SED if it exists. If not, fall back to SED2 file instead
-	#    if os.path.exists( os.path.join(dir,'data_th/sed_rt.fits.gz')):
-	#        RayTraceModeSED = True
-	#        sed = fits.getdata( os.path.join(dir, 'data_th/sed_rt.fits.gz'))
-	#    elif os.path.exists( os.path.join(dir,'data_th/sed2.fits.gz')):
-	#        RayTraceModeSED = False
-	#        sed = fits.getdata(os.path.join(dir,'data_th/sed2.fits.gz'))
-	#    elif ~ os.path.isdir(os.path.join(dir,'data_th/')):
-	#        raise IOError('Cannot find a data_th subdirectory inside '+dir)
-	#    else:
-	#        raise IOError('Cannot find either a sed_rt or sed2 file in data_th inside '+dir)
-	#
-	#    lambd = par.wavelengths
-	#
-	#
-	#    # plot model SED for all inclinations
-	#    ninc = sed.shape[2]
-	#    phi = 1
-	#
-	#    if str(inclination)== 'all':
-	#        labelstep = 1 if nlabels is None else ninc/nlabels
-	#        for inc in range(ninc):
-	#            if RayTraceModeSED:
-	#                label = "%4.1f$^o$" % (par.inclinations[inc])
-	#            else:
-	#                incmin=np.arccos(1.-((inc)*1.0)/ninc)*180./3.1415926
-	#                incmax=np.arccos(1.-((inc+1  )*1.0)/ninc)*180./3.1415926
-	#                label = "%4.1f - %4.1f$^o$" % (incmin,incmax)
-	#
-	#
-	#            flux = sed[0,phi-1,inc,:]
-	#            if np.mod(inc,labelstep) !=0: # allow skipping some labels if many are present
-	#                label=None
-	#            plt.loglog(lambd, flux, color=((ninc-inc)*1.0/ninc, 0, 0), label=label, alpha=alpha)
-	#    else:
-	#        wmin = np.argmin( abs(par.inclinations) - inclination)
-	#        print "Closest inclination found to %f is %f. " % (inclination, par.inclinations[wmin])
-	#        label = "%4.1f$^o$" % (par.inclinations[wmin])
-	#        flux = sed[0,phi-1,wmin,:]
-	#        plt.loglog(lambd, flux, color=((ninc-wmin)*1.0/ninc, 0, 0), label=label, alpha=alpha)
-	#
-	#    plt.xlabel("$\lambda$ ($\mu$m)")
-	#    plt.ylabel("$\\nu F_\\nu$ (W m$^{-2}$)")
-	#    plt.title("SED for "+title)
-	#    plt.gca().xaxis.set_major_formatter(utils.NicerLogFormatter())
-	#
-	#
-	#    # Do we have an observed SED to overplot?  
-	#    # Try looking in several different places for this file.
-	#
-	#    if observed_sed_filename is None:
-	#        possible_sed_files = [ os.path.join(dir, "observed_sed.txt"), 
-	#                os.path.join(dir, "data", "observed_sed.txt"), 
-	#                os.path.join("data", "observed_sed.txt"),
-	#                os.path.join("..", "data", "observed_sed.txt"),
-	#                os.path.join("..", "..", "data", "observed_sed.txt")]
-	#        for possible_name in possible_sed_files:
-	#            _log.debug("Checking for observed SED at "+possible_name)
-	#            if os.path.exists(possible_name):
-	#                observed_sed_filename=possible_name
-	#                _log.debug("Found observed SED at "+observed_sed_filename)
-	#                break
-	#
-	#    # if an observed SED is found, plot it.
-	#    if observed_sed_filename is not None and os.path.exists(observed_sed_filename):
-	#        #raise NotImplemented('Rewrite this with asciitable or atpy?')
-	#        #seddata = np.asarray(asciidata.open(observed_sed_filename)[0:3])
-	#        #obswavelen = seddata[0]
-	#        #flux = seddata[1]*(1.e-26)*(3.e14/obswavelen) # convert from Jy to nu Fnu in W m ^-2
-	#        #errflux=seddata[2]*(1.e-26)*(3.e14/obswavelen) #  convert from Jy to nu Fnu in W m ^-2
-	#
-	#        observed = ioascii.read(observed_sed_filename, Reader=asciitable.Tab)
-	#        flux = observed['Flux']*(1.e-26)*(3.e14/observed['Wavelen']) # convert from Jy to nu Fnu in W m ^-2
-	#        errflux=observed['Uncert']*(1.e-26)*(3.e14/observed['Wavelen']) #  convert from Jy to nu Fnu in W m ^-2
-	#
-	#        w_meas = np.where(flux > 0)
-	#        w_upper = np.where(  (np.isnan(flux) | (flux == 0)) & np.isfinite(errflux) )
-	#
-	#        plt.errorbar(observed['Wavelen'][w_meas], flux[w_meas], yerr=errflux[w_meas], label="Observed", color='blue', fmt='o')
-	#        plt.plot(observed['Wavelen'][w_upper], errflux[w_upper], 'rv')
-	#        #print(flux)
-	#
-	#    plt.legend(prop = {'size':10})
-	#    plt.draw()
-	#
+
 def plot_lir_lstar(parfilename=None,dir="./", inclination=0):
     """ Estimate L_IR/L_star for a model.
 
@@ -368,7 +263,7 @@ def plot_image(wavelength, parfilename=None,par=None, dir="./", overplot=False, 
 
 
 
-def plot_dust(dir='./', noerase=False):
+def plot_dust(directory='./', noerase=False, parameters=None):
     """ plot_dust
 
     Plot the dust scattering properties as calculated by MCFOST
@@ -376,7 +271,7 @@ def plot_dust(dir='./', noerase=False):
 
     Parameters
     -----------
-    dir : string
+    directory : string
         a MCFOST results directory
     noerase : bool
         don't erase current plots in active window.
@@ -389,43 +284,54 @@ def plot_dust(dir='./', noerase=False):
     #if not os.path.isdir(dir):
        #print "ERROR - invalid directory"
 
-    if not os.path.isfile(dir + 'data_dust/kappa.fits.gz'):
-       raise IOError("No dust properties files exist in that directory! You need to compute some using MCFOST...")
 
+    if not os.path.isfile(os.path.join(directory,'kappa.fits.gz')):
+        # if no dust files in that directory, check also a data_dust subdirectory
+        directory = os.path.join(directory, 'data_dust')
+        # and then try again:
+        if not os.path.isfile(os.path.join(directory,'kappa.fits.gz')):
+            # and if we still can't find any then give up
+            raise IOError("No dust properties files exist in that directory! You need to compute some using MCFOST...")
 
-    lambd = fits.getdata(os.path.join(dir,"data_dust/lambda.fits.gz"))
-    g = fits.getdata(os.path.join(dir,"data_dust/g.fits.gz"))
-    albedo = fits.getdata(os.path.join(dir,"data_dust/albedo.fits.gz"))
-    kappa = fits.getdata(os.path.join(dir,"data_dust/kappa.fits.gz"))
-    if os.path.exists(os.path.join(dir,"data_dust/polar.fits.gz")):
+    if parameters is None:
+        parameters = paramfiles.find_paramfile(directory=directory)
+
+    lambd = fits.getdata(os.path.join(directory, "lambda.fits.gz"))
+    g = fits.getdata(os.path.join(directory, "g.fits.gz"))
+    albedo = fits.getdata(os.path.join(directory, "albedo.fits.gz"))
+    kappa = fits.getdata(os.path.join(directory, "kappa.fits.gz"))
+    if os.path.exists(os.path.join(directory, "polar.fits.gz")):
         has_polar= True
-        polar = fits.getdata(os.path.join(dir,"data_dust/polar.fits.gz"))
+        polar = fits.getdata(os.path.join(directory, "polar.fits.gz"))
     else:
         has_polar = False
 
     if noerase is False:  plt.clf()
-    plt.subplots_adjust(top=0.98, hspace=0.3)
-    plt.subplot(411)
+    plt.subplots_adjust(top=0.98, hspace=0.3, wspace=0.4)
+    ax = plt.subplot(321)
     plt.semilogx(lambd, kappa)
     plt.ylabel("Opacity $\kappa$")
+    ax.yaxis.set_major_locator( matplotlib.ticker.MaxNLocator(5) )
 
     #----
-    plt.subplot(412)
+    ax = plt.subplot(323)
     plt.semilogx(lambd, albedo)
     plt.ylabel("Albedo")
+    ax.yaxis.set_major_locator( matplotlib.ticker.MaxNLocator(5) )
 
     #----
-    ax = plt.subplot(413)
+    ax = plt.subplot(325)
     plt.semilogx(lambd, g)
     plt.ylabel("g= <cos $\\theta$>")
-    plt.xlabel("Wavelength")
+    plt.xlabel("Wavelength [$\mu$m]")
     ax.set_ybound([0.0, 1.0])
-    ax.set_yticks([0.0, 0.25, 0.5, 0.75, 1.0])
+    ax.yaxis.set_major_locator( matplotlib.ticker.MaxNLocator(5) )
+    #ax.set_yticks([0.0, 0.25, 0.5, 0.75, 1.0])
 
 
     #----- now switch to show the polarization versus angle ----
 
-    ax = plt.subplot(414)
+    ax = plt.subplot(122)
     # move this 4th plot down slightly for visual offset
     pos = ax.get_position()  
     pa = pos.get_points()
@@ -446,5 +352,7 @@ def plot_dust(dir='./', noerase=False):
 
         prop = matplotlib.font_manager.FontProperties(size=10)
         plt.legend(prop=prop)
+    else:
+        plt.text(90,0.5, 'Polarization information\n not enabled', horizontalalignment='center', verticalalignment='center')
 
 
