@@ -38,7 +38,6 @@ html:
 
 
 htmlstsci:
-	touch ./index.html	# ensure last update date is now
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) ./doc_output/html
 	rsync -av ./doc_output/html/ nemesis.stsci.edu:web/software/mcfostpy/
 	@echo "Software built and copied to STScI"

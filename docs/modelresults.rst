@@ -1,7 +1,19 @@
+.. _modelresults:
 
-The ModelResults Class
------------------------
+Working with Model Results
+============================
 
-.. autoclass:: mcfostpy.ModelResults
+Examples and more docs to be added. 
+
+Model Results classes detailed descriptions
+---------------------------------------------
+
+.. autoclass:: mcfost.ModelResults
+   :members:
+
+.. autoclass:: mcfost.models.ModelSED
+   :members:
+
+.. autoclass:: mcfost.models.ModelImage
    :members:
 

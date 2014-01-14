@@ -1,13 +1,24 @@
 
-Python tools for MCFOST Documentation
-======================================================
+Documentation for MCFOST Python tools
+=================================================
 
 
 .. _intro:
 
-This is (or eventually will be) documenation for the mcfost-python package.
 
-For the time being, this is very incomplete. As is the software itself!
+MCFOST is a Monte Carlo and ray tracing radiative transfer model code for simulations of
+circumstellar disks and other astrophysical phenomena, by `C. Pinte et al. <http://adsabs.harvard.edu/abs/2006A%26A...459..797P>`_.
+
+The ``mcfost`` Python package is not that code. Rather it is a suite of associated utilities for
+running simulations using MCFOST, displaying outputs, and performing model fits to observations. 
+While the names are the same, context should generally make it clear which is which!
+
+
+.. warning::
+        For the time being, this documentation is still very incomplete. As is the software itself!
+
+
+The ``mcfost`` Python package is open source, developed on github in the repository ``mcfost-python``. Contributions and pull requests welcomed.
 
 Contents
 --------
@@ -16,9 +27,10 @@ Contents
    :maxdepth: 1
 
    overview.rst
-   plots.rst
    paramfile.rst
    modelresults.rst
+   observations.rst
+   plots.rst
    chisqr.rst
 
 Indices and tables

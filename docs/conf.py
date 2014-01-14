@@ -22,7 +22,7 @@ sys.path.append(os.path.abspath('../'))
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'numpydoc','sphinx.ext.inheritance_diagram', 'sphinx.ext.pngmath', 'sphinx.ext.autosummary']
+extensions = ['sphinx.ext.autodoc', 'numpydoc','sphinx.ext.inheritance_diagram', 'sphinx.ext.pngmath', 'sphinx.ext.autosummary', 'matplotlib.sphinxext.plot_directive']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -203,5 +203,8 @@ latex_documents = [
 # -- Options for autodoc ----------------------------
 
 autodoc_member_order = 'bysource'
+
+# Cut down on spurious error messages, see https://groups.google.com/forum/#!topic/astropy-dev/_7ImSU3NGnQ
+numpydoc_show_class_members = False
 
 #autoclass_content = 'both'
