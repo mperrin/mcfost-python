@@ -54,9 +54,9 @@ def setup_logging(level='INFO',  filename=None, verbose=False):
 
     """
     import logging
-    _log = logging.getLogger('mcfostpy')
+    _log = logging.getLogger('mcfost')
 
-    lognames=['mcfostpy']
+    lognames=['mcfost']
 
     if level.upper() =='NONE':
         # disable logging
@@ -74,7 +74,7 @@ def setup_logging(level='INFO',  filename=None, verbose=False):
 
     # set up screen logging
     logging.basicConfig(level=logging.INFO,format='%(name)-10s: %(levelname)-8s %(message)s')
-    if verbose: print("Setup_logging is adjusting Python logging settings:")
+    if verbose: print("Setup_logging is adjusting Python logging settings.")
 
 
     if str(filename).strip().lower() != 'none':
