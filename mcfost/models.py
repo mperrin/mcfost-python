@@ -11,7 +11,7 @@ import astropy.io.fits as fits
 import astropy.io.ascii as ascii
 import astropy.units as units
 import logging
-_log = logging.getLogger('mcfostpy')
+_log = logging.getLogger('mcfost')
 
 #from . import plotting
 from .paramfiles import Paramfile, find_paramfile
@@ -95,7 +95,14 @@ class ModelResults(MCFOST_Dataset):
     Because of how MCFOST works, in practice this class may actually represent multiple
     inclinations all calculated for the same set of physical parameters.
     """
-    def __init__(self, directory="./"):
+
+    parameters = None
+    """ Paramfile object for this model's parameters"""
+
+    sed = None
+    """ ModelSED object containing the computed SED """
+
+    def __init__(self, directory="./", parameters=None):
         """ Initialize model. 
         
         This does read in parameters, but does NOT automatically load
@@ -107,10 +114,17 @@ class ModelResults(MCFOST_Dataset):
         directory : str
             Directory path to the root dir of the model (i.e. the parent directoy containing 
             data_th, data_1.0 etc)
+        parameters : filename
+            Filename of MCFOST parameter file. Can be omitted if there is one unambiguous
+            parameter file in the specified directory.
         """
 
         self.directory = os.path.abspath(directory)
-        self._paramfilename = find_paramfile(self.directory)
+
+        if parameters is None:
+            self._paramfilename = find_paramfile(self.directory)
+        else:
+            self._paramfilename = parameters
 
         if self._paramfilename is None:
             raise IOError("Could not find a parameter file in that directory")
@@ -386,14 +400,78 @@ class ModelResults(MCFOST_Dataset):
                 cax = plt.axes([0.92, 0.25, 0.02, 0.5])
                 plt.colorbar(ax2.images[0], cax=cax, orientation='vertical')
 
+    def plot_dust(self, *args, **kwargs):
+        """ Plot dust scattering properties
+
+
+        Plot the dust scattering properties as calculated by MCFOST
+        for some given collection of grains. 
+
+        Note: For this to work you must have first saved dust properties
+        to disk using the ``mcfost somefile.par -dust_prop``
+        """
+
+        from . import plotting
+        plotting.plot_dust(directory=self.directory, parameters = self.parameters, *args, **kwargs)
+
     def describe(self):
         """ Return a descriptive brief paragraph on what results are present """
         print "Model results in {self.directory} for {parfn}".format(self=self, parfn = os.path.basename(self._paramfilename))
+        print "    Model has {0} inclinations from {1} to {2}".format(len(self.parameters.inclinations), min(self.parameters.inclinations), max(self.parameters.inclinations))
         if self.sed is None:
             print "    No SED data present"
         else:
             print "    SED computed from {par.lambda_min} - {par.lambda_max} microns using {par.nwavelengths} wavelengths".format(par=self.parameters)
         print "    Images computed for {0} wavelengths: {1}".format(len(self.image_wavelengths), self.image_wavelengths)
+
+        if os.path.exists(os.path.join(self.directory, 'data_dust/kappa.fits.gz')):
+            print "    Dust scattering properties have been saved to disk for that model grain population."
+
+    def calc_chisqr(self, observed, weights=None, **kwargs):
+        """ Calculate chi^2 statistic based on comparison with observations 
+
+
+        Parameters
+        -----------
+        observed : MCFOST.Observations instance
+            Available observational data to be compared with models
+        weights : list of floats
+            Weights for computing the combined chi^2 merging all sub-
+            chi^2 values.  Provide these in the order [SED, shortest wavelength image,
+            second shortest wavelength image, ... longest wavelength image].
+        save : bool
+            Save chi^2 results to disk
+
+        Notes
+        -------
+
+        Many other parameters are accepted and passed to the individual chi^2 functions.
+        See mcfost.chisqr.sed_chisqr and mcfost.chisqr.image_chisqr for details.
+
+        Note that the chi^2 values calculated will typically be an array, with one chi^2 value
+        for each inclination present in the MCFOST models.
+
+        """
+        from . import chisqr
+
+        if weights is None:
+            weights = [1.0]* (self.image_wavelengths.size + 1)
+
+        if self.sed is None:
+            raise IOError("No SED data present; cannot compute chi^2.")
+ 
+        _log.info("Computing SED chi^2")
+        sed_chi2 = chisqr.sed_chisqr(self, observed, **kwargs)  * weights[0]
+
+        return sed_chi2
+        im_chi2 = []
+        for i in range(self.image_wavelengths.size):
+            _log.info("Computing image chi^2 for {0} microns".format(self.image_wavelengths[i].value) )
+            im_chi2.append( chisqr.image_chisqr(self, observed, wavelength=self.image_wavelengths[i],
+                **kwargs) *  weights[i+1] )
+
+
+        #_log.info("Resulting chi^2s: {0} SED, {1} images".format(sed_chi2,  ",".join(im_chi2)) )
 
 
 #----------------------------------------------------
@@ -411,7 +489,7 @@ class Observations(MCFOST_Dataset):
     """ Observed SED"""
 
     images = None
-    """ Container of images?  TBD what type of container. Indexed by wavelength?  """
+    """ Container for model images.  """
 
     image_wavelengths = []
     """ List of wavelengths for which we have images """
@@ -447,7 +525,8 @@ class Observations(MCFOST_Dataset):
         for i, line in enumerate(summary):
             # filename, type, wavelength (optional)
             parts = line.split()
-            print i, parts
+            #print i, parts
+            _log.info("Found observations: {0} is {1}".format(parts[0], " at ".join(parts[1:])) )
             thisfile = os.path.join(self.directory, parts[0])
             filenames.append(thisfile)
             types.append(parts[1].lower())
@@ -460,6 +539,17 @@ class Observations(MCFOST_Dataset):
 
     def __repr__(self):
         return "<MCFOST Observations in directory '{self.directory}'>".format(self=self)
+
+    def describe(self):
+        """ Return a descriptive brief paragraph on what results are present """
+        print "Observations in {self.directory}".format(self=self)
+        if self.sed is None:
+            print "    No SED data present"
+        else:
+            print "    SED from {0} - {1} microns at {2} wavelengths".format(self.sed.wavelength.min(), self.sed.wavelength.max(), self.sed.wavelength.size)
+        print "    Images available for {0} wavelengths: {1}".format(len(self.image_wavelengths), self.image_wavelengths)
+
+
  
 #----------------------------------------------------
 
@@ -477,15 +567,18 @@ class MCFOST_SED_Base(object):
 
     @property
     def frequency(self):
+        """ Frequency in Hertz, as an astropy.Quantity"""
         import astropy.constants as const
         return (const.c/self.wavelength).to(units.Hz)
 
     @property
     def nu_fnu(self):
+        """ Spectral energy distribution in W/m^2, as an astropy.Quantity"""
         return ( self.flux * self.frequency ).to(units.W/units.m**2)
 
     @property
     def nu_fnu_uncert(self):
+        """ Uncertainty in spectral energy distribution in W/m^2, as an astropy.Quantity"""
         return ( self.uncertainty * self.frequency ).to(units.W/units.m**2)
 
 
@@ -493,6 +586,12 @@ class ModelSED(MCFOST_SED_Base):
     """ Model SED class 
     Reads observations from disk; returns them as as astropy Units objects 
     """
+
+    directory = None
+    """ Directory containing the model results."""
+
+    filename = None
+    """ Filename for the model results SED FITS file."""
 
     def __init__(self, directory="./",filename=None, parameters=None):
         self._sed_type = 'Model'
@@ -510,22 +609,24 @@ class ModelSED(MCFOST_SED_Base):
 
     @property
     def inclinations(self):
+        """Inclinations for which the model was computed, in degrees"""
         return self.parameters.inclinations
 
     @property
     def wavelength(self):
+        """ Wavelength in microns, as an astropy.Quantity"""
         return self.parameters.wavelengths * units.micron
 
     @property 
     def nu_fnu(self):
-        """ Attribute that provides access to SED results data (from sed_rt.fits.gz files)
+        """ Spectral energy distribution in W/m^2, as an astropy.Quantity
 
-        Provides a 2D array containing the SED for all inclinations that were calculated
+        Note this will be a 2D array containing the SED for all inclinations that were calculated
         in that model.
 
-        Implement lazy loading for SED data - no files are read until the 
+        This implements lazy loading for SED data; no files are read until the 
         user tries to access this attribute, at which point the SED data is
-        automaatically loaded """
+        automatically loaded."""
         # The axes of the SED data from MCFOST are [stokes, azimuth, inclination, wavelength] in Python axis order
 
         # if it's already loaded then just return it
@@ -562,10 +663,12 @@ class ModelSED(MCFOST_SED_Base):
 
     @property
     def uncertainty(self):
+        """ Uncertainty in spectral energy distribution in W/m^2, as an astropy.Quantity"""
         return np.zeros_like(self.nu_fnu.value) * (units.Jy)
 
     @property
     def flux(self):
+        """ Flux in Janskys, as an astropy.Quantity"""
         return (self.nu_fnu / self.frequency).to(units.Jy)
 
 
@@ -647,8 +750,7 @@ class ModelSED(MCFOST_SED_Base):
 
         if legend:
             plt.legend(loc='upper right')
-        #plt.draw()
-        #return ax
+        return ax
 
 
 class ObservedSED(MCFOST_SED_Base):
@@ -669,24 +771,28 @@ class ObservedSED(MCFOST_SED_Base):
 
     @property
     def flux(self):
+        """ Flux in Janskys, as an astropy.Quantity"""
         return self._sed_table['flux']  * (units.Jy) # (units.W / units.m**2)
 
     @property
     def wavelength(self):
+        """ Wavelength in microns, as an astropy.Quantity"""
         return self._sed_table['wavelength'] *units.micron
 
     @property
     def frequency(self):
+        """ Frequency in Hertz, as an astropy.Quantity"""
         import astropy.constants as const
         return (const.c/self.wavelength).to(units.Hz)
 
     @property
     def uncertainty(self):
+        """ Uncertainty in flux in Janskys, as an astropy.Quantity"""
         return self._sed_table['uncertainty'] * (units.Jy)
 
     def plot(self, title=None, overplot=False, 
              alpha=0.75, marker='o', color='blue', linestyle='None', **kwargs):
-        """ Plot observed SED
+        """ Plot the observed SED.
     
         Parameters
         -----------
@@ -694,6 +800,10 @@ class ObservedSED(MCFOST_SED_Base):
             Should this overplot or make a new plot?
         alpha : float
             Transparency for plots
+        title : string
+            Title for plot.
+        
+        Matplotlib keywords such as marker, linestyle, color, etc are also supported.
 
         """
 
@@ -759,4 +869,8 @@ class ObservedImage(object):
         print "Filename for image: "+imagefilename
         raise NotImplementedError("Not implemented yet!")
 
-
+class ModelImage(object):
+    """ Class for a model image, at a single wavelength
+    but potentially multiple inclinations.
+    """
+    pass
