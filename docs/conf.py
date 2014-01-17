@@ -48,7 +48,7 @@ copyright = u'2011-2013, Marshall Perrin & Christophe Pinte '
 #
 # The short X.Y version.
 #import gpidata
-version = '0.01'
+version = '0.03'
 # The full version, including alpha/beta/rc tags.
 release = version+''
 

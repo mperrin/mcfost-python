@@ -87,9 +87,27 @@ For output, the code should always output the most recent version it's been upda
    >>>                                                   # regardless of the original version read in
 
 
+Creating Grids of Parameter Files
+--------------------------------------
+
+The ``grid_generator`` function provides a flexible interface for creating a regular grid of parameter files. 
+First, define a dictionary that lists the parameters to vary and the desired values. Then pass that and a
+reference parameter file to the grid_generator function::
+
+   >>> pars_to_vary = {'dust_amax': [100, 500., 1000], 'dust_mass': [1e-4, 3e-5, 1e-5], 'm_star': [2.0, 3.0]}
+   >>> mcfost.grid_generator('ref2.19.para', pars_to_vary, filename_prefix='gridtest', start_counter=6)
+   
+The parameter files will be written to disk using filenames starting with the specified ``filename_prefix`` followed by an
+integer counter starting at ``start_counter``. 
+
+
 Paramfile class detailed documentation
 -----------------------------------------
 
 .. autoclass:: mcfost.Paramfile
    :members:
 
+Grid Generation function documentation
+-------------------------------------------
+
+.. autofunction:: mcfost.grid_generator

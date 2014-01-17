@@ -39,7 +39,7 @@ html:
 
 htmlstsci:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) ./doc_output/html
-	rsync -av ./doc_output/html/ nemesis.stsci.edu:web/software/mcfostpy/
+	rsync -av ./doc_output/html/ mperrin.stsci.edu:web/software/mcfostpy/
 	@echo "Software built and copied to STScI"
 	@echo "try :"
 	@echo "   open http://www.stsci.edu/~mperrin/software/mcfostpy/"

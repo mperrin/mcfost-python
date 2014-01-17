@@ -5,7 +5,7 @@ Working with Observations
 
 Examples and more docs to be added. 
 
-Requires File Formats and Organization
+Required File Formats and Organization
 ----------------------------------------
 
 These are by design precisely compatible with the organization scheme adopted by ``MCRE``, the IDL Monte Carlo Results Explorer package by Perrin et al. 
