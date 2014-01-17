@@ -2,16 +2,26 @@
 Overview
 ===========
 
+
 Parameter files can be read in to ``Paramfile`` objects, manipulated, and written back out.  See :ref:`parfiles` for details.
 
 .. code-block:: python
 
-   >>> par = mcfost.Paramfile('example/ref2.19.para')
+   >>> par = mcfost.Paramfile('ref2.19.para')
    >>> par.distance = 200
-   >>> par.writeto('modified.par')
+   >>> par.writeto('example.par')
 
-Once MCFOST calculations have been done for a given parameter file, their results may be examined and plotted.
-See :ref:`modelresults` for details.
+MCFOST calculations may then be executed for a given parameter file, or for many parameter files at once (see :ref:`running`):
+
+.. code-block:: python
+
+   >>> par = mcfost.run_one_file('example.par')
+   INFO:mcfost:Running MCFOST for: ./example.par
+   [...]
+   INFO:mcfost:Calculation complete.
+
+ 
+After which the results may be examined and plotted (see :ref:`modelresults`):
 
 .. code-block:: python
 
@@ -33,7 +43,7 @@ See :ref:`modelresults` for details.
 
 You presumably also have observed data you wish to compare to, and
 those can be loaded and displayed as well. 
-See :ref:`modelresults` for details, including the required file formats.
+See :ref:`observations` for details, including the required file formats.
 The interfaces for working with 
 model results and observations are similar:
 

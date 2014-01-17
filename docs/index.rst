@@ -14,6 +14,9 @@ running simulations using MCFOST, displaying outputs, and performing model fits 
 While the names are the same, context should generally make it clear which is which!
 
 
+This documentation assumes readers are already familiar with MCFOST itself and have read the MCFOST Manual. 
+Some references and comparisons are made to the MCFOST Results Explorer tool (in IDL), but familiarity with that isn't required.
+
 .. warning::
         For the time being, this documentation is still very incomplete. As is the software itself!
 
@@ -28,6 +31,7 @@ Contents
 
    overview.rst
    paramfile.rst
+   running.rst
    modelresults.rst
    observations.rst
    plots.rst

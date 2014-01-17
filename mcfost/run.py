@@ -1,32 +1,133 @@
+import os
+import subprocess
+import logging
+_log = logging.getLogger('mcfost')
+
+
 import astropy
 
 # Functions for actually running MCFOST models under Python control
 
 
-def run_all(filename_or_Paramfile, wavelengths=[]):
-    run_sed(filename_or_Paramfile)
+def run_all_files(directory, loop_forever=False, **kwargs):
+    """ Run all parameter files in a directory.
+
+    Parameters
+    -----------
+    loop_forever : bool
+        If set, once all files are complete, wait indefinitely for
+        more parameter files to be written and then process those too. 
+
+    Notes
+    -------
+    See run_one_file for other allowable parameters. 
+    """
+
+    import glob
+
+    keepgoing = True
+    while keepgoing:
+        parfiles = glob.glob(os.path.join(directory, "*.par"))
+        _log.info("Found {0} files to process: {1}".format(len(parfiles), ", ".join(parfiles)))
+        for filename in parfiles:
+            run_one_file(filename, **kwargs)
+        keepgoing = loop_forever
+
+
+
+def run_one_file(filename, wavelengths=[], move_to_subdir=True):
+    """ Run a given parameter file.
+
+    Parameters
+    --------------
+    wavelengths : iterable of floats
+        Wavelengths to compute images for. Leave empty to just run the SED.
+    move_to_subdir : bool
+        Should we create a subdirectory for this parameter file, and move
+        the parameter file into that subdirectory, before running it? 
+        This is useful for handling the output of grid_generator()
+    """
+    if not isinstance(filename, basestring):
+        raise TypeError("First argument to run_all must be a filename.")
+    if not os.path.exists(filename):
+        raise IOError("Nonexistent file: "+filename)
+
+    _log.info("Running MCFOST for: "+filename)
+
+    if move_to_subdir:
+        _log.info("Relocating {0} to a subdirectory of the same name.".format(os.path.basename(filename)))
+        modelname = os.path.splitext(os.path.basename(filename))[0]
+        os.mkdir(modelname)
+        subprocess.call('chmod -R g+w '+modelname,shell=True)
+        subprocess.call('mv '+filename+' '+modelname,shell=True)
+
+        filename = os.path.join(modelname, os.path.basename(filename))
+
+
+    run_sed(filename)
 
     for wl in wavelengths:
-        run_image(filename_or_Paramfile, wl)
+        run_image(filename, wl)
 
-def run_sed(filename_or_Paramfile,raytrace=True,  *args ):
-    """ Run a MCFOST calculation of the SED"""
-    _log.info("Computing SED for {0}".format(filename_or_Paramfile))
+    _log.info("Calculation complete.")
 
-    if isinstance(filename_or_Paramfile, str):
-        filename = filename_or_Paramfile
-    else: # assume it's an instance of a Paramfile structure
-        filename = filename_or_Paramfile.filename
+
+def run_sed(filename,raytrace=True,  *args ):
+    """ Run a MCFOST calculation of the SED
+    
+    Parameters
+    ------------
+    raytrace : bool
+        Should raytrace mode be used? Default is true. 
+    """
+
+    if not isinstance(filename, basestring):
+        raise TypeError("First argument to run_sed must be a filename.")
+    if not os.path.exists(filename):
+        raise IOError("Nonexistent file: "+filename)
+
+
+    _log.info("Computing SED for {0}".format(filename))
 
     directory = os.path.dirname(os.path.abspath(filename))
 
+    cmdstr = 'mcfost '+os.path.basename(filename)
+    if raytrace: cmdstr += " -rt"
+
+    subprocess.call("echo  '>> "+ cmdstr+"' >> output.log",shell=True, cwd=directory)
+    subprocess.call(cmdstr+' >> output.log',shell=True, cwd=directory)
+    subprocess.call('chmod -R g+w *',shell=True, cwd=directory)
 
 
 
-def run_image(filename_or_Paramfile, wavelength, raytrace=True, *args):
-    """ Run a MCFOST calculation of the image """
-    _log.info("Computing image at {1} microns for {0}".format(filename_or_Paramfile, wavelength))
-    pass
+
+
+
+def run_image(filename, wavelength, raytrace=True, *args):
+    """ Run a MCFOST calculation of the image 
+    
+    Parameters
+    ------------
+    wavelength : float
+        Wavelength in microns for the image
+    raytrace : bool
+        Should raytrace mode be used? Default is true. 
+ 
+    """
+    if not isinstance(filename, basestring):
+        raise TypeError("First argument to run_image must be a filename.")
+    if not os.path.exists(filename):
+        raise IOError("Nonexistent file: "+filename)
+
+    _log.info("Computing image at {1} microns for {0}".format(filename, wavelength))
+
+    directory = os.path.dirname(os.path.abspath(filename))
+    cmdstr = 'mcfost '+os.path.basename(filename)+' -img '+str(wavelength)
+    if raytrace: cmdstr += " -rt"
+
+    subprocess.call("echo  '>> "+ cmdstr+"' >> output.log",shell=True, cwd=directory)
+    subprocess.call(cmdstr +' >> output.log',shell=True, cwd=directory)
+    subprocess.call('chmod -R g+w *',shell=True, cwd=directory)
 
 
 

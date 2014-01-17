@@ -107,7 +107,7 @@ Paramfile class detailed documentation
 .. autoclass:: mcfost.Paramfile
    :members:
 
-Grid Generation function documentation
+Function detailed documentation
 -------------------------------------------
 
 .. autofunction:: mcfost.grid_generator
