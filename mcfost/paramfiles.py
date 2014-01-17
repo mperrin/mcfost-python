@@ -681,7 +681,63 @@ class Paramfile(object):
         outfile.close()
         print "  ==>> "+outname
 
+    def set_parameter(self, paramname, value):
+        """ Helper function for parameter setting. 
 
+        For many parameters this is a trivial one-line wrapper. 
+        But for some of the nested structures inside e.g. the density or
+        dust properties structs, it's convenient to define some
+        shortcuts for use in iterating over grids or MCMC/GA ensembles. 
+        This implements those shortcuts. 
+
+        Note: Shortcut names are consistent with those defined in the
+        IDL MCRE re_translationtable.txt configuration file.
+
+        """
+
+        if paramname == 'm_star':
+            self.star['mass'] = value
+        elif paramname == 't_star':
+            self.star['temp'] = value
+        elif paramname == 'r_star':
+            self.star['radius'] = value
+        elif paramname == 'dust_settling':
+            self['dust_settling'] = value
+        # When iterating over properties of disk geometry, 
+        # generally we mean to do so over the first density zone.
+        elif paramname == 'dustmass' or paramname == 'dust_mass':
+            self.density_zones[0]['dust_mass'] = value
+        elif paramname == 'r_in':
+            self.density_zones[0]['r_in'] = value
+        elif paramname == 'r_out':
+            self.density_zones[0]['r_out'] = value
+        elif paramname == 'flaring':
+            self.density_zones[0]['flaring_exp'] = value
+        elif paramname == 'surface_density':
+            self.density_zones[0]['surface_density_exp'] = value
+        elif paramname == 'scaleheight' or paramname == 'scale_height':
+            self.density_zones[0]['scale_height'] = value
+        elif paramname == 'zone_type':
+            self.density_zones[0]['zone_type'] = value
+        # likewise, almost always when iterating over dust properties we want to
+        # iterate over the first dust component of the first zone. 
+        # If you want to do something more complicated, you'll have to
+        # modify this or write your own code...
+        elif paramname == 'dust_exponent':
+            self.density_zones[0]['dust'][0]['aexp'] = value
+        elif paramname == 'dust_amax':
+            self.density_zones[0]['dust'][0]['amax'] = value
+        elif paramname == 'dust_amin':
+            self.density_zones[0]['dust'][0]['amin'] = value
+        elif paramname == 'dust_species':
+            self.density_zones[0]['dust'][0]['filename'] = value
+        elif paramname == 'dust_porosity':
+            self.density_zones[0]['dust'][0]['porosity'] = value
+        else:
+            try: 
+                self[paramname] = value
+            except:
+                raise ValueError("Don't know how to set a parameter named '{0}'".format(paramname))
 
 def find_paramfile(directory="./",  parfile=None, verbose=False, wavelength=None):
     """ Find a MCFOST par file in a specified directory
@@ -724,48 +780,4 @@ def find_paramfile(directory="./",  parfile=None, verbose=False, wavelength=None
     _log.debug('Par file found: '+str(output))
     return output
 
-
-def grid_generator(template_parfile, scale_height=None, dust_mass=None,
-        rin=None, rout=None, amin=None, amax=None, aexp=None,
-        rstar=None, tstar=None, 
-        alpha=None, beta=None, 
-        init_counter=1):
-    par = Paramfile(template_parfile)
-
-    #set up the arrays we are going to iterate over
-    if scale_height is None: scale_height = [ par['scale_height'] ]
-    if dust_mass is None: dust_mass  = [par['dust_mass']]
-    if r_in is None: r_in  = [par['r_in']]
-    if r_out is None: r_out  = [par['r_out']]
-    if amin is None: amin  = [par.density_zones[0]['dust'][0]['amin']]
-    if amax is None: amax  = [par.density_zones[0]['dust'][0]['amax']]
-    if aexp is None: aexp  = [par.density_zones[0]['dust'][0]['aexp']]
-    if alpha is None: alpha  = [par['alpha']]
-    if beta is None: beta  = [par['beta']]
-
-    model_id=init_counter
-
-    # massively nested set of for loops to iterate.
-
-    for scale_height_val in scale_height:
-     par['scale_height'] = scale_height_val
-     for dust_mass_val in dust_mass:
-      par['dust_mass'] = dust_mass_val
-      for r_in in r_in:
-       par['r_in'] =r_in_val
-       for r_out_val in r_out:
-        par['r_out'] =r_out_val
-        for amin_val in amin:
-         par.density_zones[0]['dust'][0]['amin'] = amin_val
-         for amax_val in amax:
-          par.density_zones[0]['dust'][0]['amax'] = amax_val
-          for aexp_val in aexp:
-           par.density_zones[0]['dust'][0]['aexp'] = aexp_val
- 
-
-
-
-      # now actually output that model
-      par.writeto('{0}_{1:5d}'.format(prefix,model_id))
-      model_id+=1
 
