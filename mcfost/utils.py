@@ -53,11 +53,10 @@ def setup_logging(level='INFO',  filename=None, verbose=False):
     users not familiar with Python's logging system.
 
     """
-    # set up screen logging
-    logging.basicConfig(level=logging.INFO,format='%(name)-10s: %(levelname)-8s %(message)s')
-    if verbose: print("Setup_logging is adjusting Python logging settings:")
+    import logging
+    _log = logging.getLogger('mcfost')
 
-    name='mcfostpy'
+    lognames=['mcfost']
 
     if level.upper() =='NONE':
         # disable logging
@@ -69,7 +68,13 @@ def setup_logging(level='INFO',  filename=None, verbose=False):
         lev = logging.__dict__[level.upper()] # obtain one of the DEBUG, INFO, WARN, or ERROR constants
         if verbose: print "Log messages of level {0} and above will be shown.".format(level)
 
-    logging.getLogger(name).setLevel(lev)
+    for name in lognames:
+        logging.getLogger(name).setLevel(lev)
+        _log.debug("Set log level of {name} to {lev}".format(name=name, lev=level.upper()))
+
+    # set up screen logging
+    logging.basicConfig(level=logging.INFO,format='%(name)-10s: %(levelname)-8s %(message)s')
+    if verbose: print("Setup_logging is adjusting Python logging settings.")
 
 
     if str(filename).strip().lower() != 'none':
@@ -82,6 +87,7 @@ def setup_logging(level='INFO',  filename=None, verbose=False):
             logging.getLogger(name).addHandler(hdlr)
 
         if verbose: print("Log outputs will also be saved to file "+filename)
+        _log.debug("Log outputs will also be saved to file "+filename)
 
 def find_closest(list_, item):
     """ return the index for the entry closest to a desired value """

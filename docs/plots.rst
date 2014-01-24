@@ -1,5 +1,5 @@
-Display & Plotting Tools
-=============================
+Additional Display & Plotting Tools
+=====================================
 
 
 documentation TBD.

@@ -3,94 +3,61 @@ Overview
 ===========
 
 
+Parameter files can be read in to ``Paramfile`` objects, manipulated, and written back out.  See :ref:`parfiles` for details.
 
-Working with Parameter Files
--------------------------------
+.. code-block:: python
 
+   >>> par = mcfost.Paramfile('ref2.19.para')
+   >>> par.distance = 200
+   >>> par.writeto('example.par')
 
-Parameter files can be read into objects, manipulated, and written back out. Many parameters are accessible as object attributes::
+MCFOST calculations may then be executed for a given parameter file, or for many parameter files at once (see :ref:`running`):
 
-   >>> par = mcfostpy.Paramfile('/path/to/some_parameters.para')
-   >>> par.version
-   2.17
-   >>> par.grid_nrad
-   100
-   >>> 
+.. code-block:: python
 
-The resulting object's attributes provide read/write access to all the settings in that parameter file.::
+   >>> par = mcfost.run_one_file('example.par')
+   INFO:mcfost:Running MCFOST for: ./example.par
+   [...]
+   INFO:mcfost:Calculation complete.
 
-    >>> print "Distance:", par.distance, 'pc'
-    >>> print "Wavelength range:", par.wavelengths_min, " to", par.wavelengths_max, "microns"
-    >>> print "Changing distance to 200 pc"
-    >>> par.distance = 200
-    >>> print "Distance:", par.distance, 'pc'
-
-    Distance: 140.0 pc
-    Wavelength range: 0.1  to 3000.0 microns
-    Changing distance to 200 pc
-    Distance: 200 pc
-
-     
-This also includes some quantities which are computed from the parameters, not directly stated in the parameter file::
-
-   >>> print "Wavelengths", par.wavelengths
-   >>> print "Inclinations in RT mode: ", par.inclinations
-   Wavelengths [  1.10859065e-01   1.36242824e-01   1.67438785e-01   2.05777785e-01
-       2.52895390e-01   3.10801666e-01   3.81966929e-01   4.69427133e-01
-       ...
-       2.20195083e+03   2.70613864e+03]
-   Inclinations in RT mode:  [ 45.]
-
-
-Parameters that can be repeated multiple times are stored as lists of dicts. Here's a model with two density zones::
-
-   >>> print len(par.density_zones)
-   2
-   >>> print par.density_zones[0]['dust_mass']
-   0.001
-
-Since dust properties are different for every zone, and each zone can have multiple species of dust,
-they're stored within the density zone dicts as another list of dicts. This can lead to some pretty complicated indexing::
  
-   >>> print par.density_zones[0]['dust'][0]['aexp']   
-   3.5  # aexp for the first dust species in the first zone
-   >>> print par.density_zones[2]['dust'][1]['aexp']   
-   2.0  # aexp for the second dust species in the third zone. 
+After which the results may be examined and plotted (see :ref:`modelresults`):
+
+.. code-block:: python
+
+  >>> res = mcfost.ModelResults('example')
+  >>> res.describe()
+  Model results in examples for ref2.19.para
+    Model has 15 inclinations from 60.0 to 90.0
+    SED computed from 0.1 - 3500.0 microns using 30 wavelengths
+    Images computed for 1 wavelengths: [ 0.8] micron 
+  >>> res.sed.plot(title='Example SED plot', nlabels=4)
+
+.. plot::
+  :height: 300
+
+  import mcfost
+  res = mcfost.ModelResults('example')
+  res.sed.plot(title='Example SED plot', nlabels=4)
 
 
-**Input & Output**
+You presumably also have observed data you wish to compare to, and
+those can be loaded and displayed as well. 
+See :ref:`observations` for details, including the required file formats.
+The interfaces for working with 
+model results and observations are similar:
 
-The parameter file reading code attempts to handle several recent versions of the parameter file format, 
-but this is not fully tested. 
+.. code-block:: python
 
-.. warning::
-    Currently not all parameters are implemented to be read in - this needs more work.
-
-For output, the code should always output the most recent version it's been updated to handle. Currently this is 2.17. ::
-
-   >>> paramfile.writeto('desired_output_filename.par')
-
-
-
-.. warning::
-    I just re-did most of the output formatting to use Python's new-style string formatting instead of
-    old C-style % formatting. Needs more work still. In particular Boolean output as T/F instead of True/False needs to be 
-    fixed. 
-
-    2.17 code not fully tested. 
+  >>> obs = mcfost.observations('example_obs')
+  >>> obs.describe()
+  >>> obs.sed.plot()
 
 
-Working with Model Results
-----------------------------
+There are included functions for calculating :math:`\chi^2` values for model fitting, currently supporting SEDs only. Image fitting is a work in progress. 
+The long term goal is to provide an interface for MCMC model fitting via `emcee <http://dan.iel.fm/emcee/current>`_.  
+ 
 
-
-
-
-
-Detailed Function Reference
------------------------------
-.. autoclass:: mcfostpy.Paramfile
-    :members:
 
 
 

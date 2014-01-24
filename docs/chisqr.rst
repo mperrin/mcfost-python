@@ -2,7 +2,8 @@
 Chi Squared Fitting
 -----------------------
 
+Documentation TBA.
 
-.. autofunction:: mcfostpy.sed_chisqr
+.. autofunction:: mcfost.sed_chisqr
 
-.. autofunction:: mcfostpy.image_chisqr
+.. autofunction:: mcfost.image_chisqr
