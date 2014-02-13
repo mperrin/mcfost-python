@@ -154,13 +154,8 @@ class ModelResults(MCFOST_Dataset):
             self.sed = None
             warnings.warn('No SED results were found in that directory.')
 
-
-
-
     def __repr__(self):
         return "<MCFOST ModelResults in directory '{self.directory}'>".format(self=self)
-   
-
 
     def plot_SED(self, inclination='all', title=None, overplot=False, 
             nlabels=None, alpha=0.75, **kwargs):
@@ -225,7 +220,6 @@ class ModelResults(MCFOST_Dataset):
         plt.ylabel("$\\nu F_\\nu$ (W m$^{-2}$)")
         plt.title("SED for "+title)
         plt.gca().xaxis.set_major_formatter(utils.NicerLogFormatter())
-
 
     def plot_image(self, wavelength0, overplot=False, inclination=None, cmap=None, ax=None, 
             axes_units='AU',
@@ -838,25 +832,28 @@ class ObservedImage(object):
     optionally along with associated uncertainty image and pixel mask.
 
     """
-    def __init__(self, filename, uncertainty=None, mask=None):
-        pass
+    def __init__(self, filename, uncertainty=None, mask=None, wavelength=None):
+        self.filename = filename
+        self.uncertainty_filename = uncertainty
+        self.mask_filename = mask
+        self.wavelength = wavelength
+
+    def __repr__(self):
+        return "<Observed image at {0} microns>".format(self.wavelength)
 
 
 
-    def plot(self, wavelength, overplot=False, cmap=None, ax=None, 
+    def show(self, overplot=False, cmap=None, ax=None, 
             vmin=None, vmax=None, which='image'):
         """
         Display one image
 
         Parameters
         ----------
-        wavelength : float
-           desired wavelength to plot into 
-        overplot : bool:q
-
-
+        overplot : bool
+            Overplot into existing axes or create new axes?
         cmap : matplotlib color map
-            desired comor map
+            desired color map
         ax : matplotlib axis
             axis to plot into
         vmin, vmax : floats
@@ -873,4 +870,9 @@ class ModelImage(object):
     """ Class for a model image, at a single wavelength
     but potentially multiple inclinations.
     """
-    pass
+    def __init__(self, directory, wavelength):
+        self.directory = directory
+        self.wavelength = wavelength
+
+    def show(self):
+        pass

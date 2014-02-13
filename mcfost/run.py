@@ -34,7 +34,6 @@ def run_all_files(directory, loop_forever=False, **kwargs):
         keepgoing = loop_forever
 
 
-
 def run_one_file(filename, wavelengths=[], move_to_subdir=True):
     """ Run a given parameter file.
 
@@ -97,10 +96,6 @@ def run_sed(filename,raytrace=True,  *args ):
     subprocess.call("echo  '>> "+ cmdstr+"' >> output.log",shell=True, cwd=directory)
     subprocess.call(cmdstr+' >> output.log',shell=True, cwd=directory)
     subprocess.call('chmod -R g+w *',shell=True, cwd=directory)
-
-
-
-
 
 
 def run_image(filename, wavelength, raytrace=True, *args):

@@ -70,7 +70,7 @@ def sed_chisqr(modelresults, observations, dof=1,
     mod_inclinations = modelresults.parameters.inclinations
 
     if plot:
-        observations.sed.plot()
+        observations.sed.plot(**kwargs)
 
     ninc = mod_inclinations.size
     chi2s = np.zeros(ninc)
@@ -113,7 +113,7 @@ def sed_chisqr(modelresults, observations, dof=1,
                 'DISTRNGE': str(distance_range) }
         tab = astropy.table.Table(tabledict, meta=meta)
 
-        tab.write(os.path.join(modelresults.directory, 'observables', 'py_sed_chisq.fits'))
+        tab.write(os.path.join(modelresults.directory, 'observables', 'py_sed_chisq.fits'), overwrite=True)
 
     return chi2s
 
