@@ -60,6 +60,7 @@ def sed_chisqr(modelresults, observations, dof=1,
     if vary_AV:
         _log.info("Computing chi^2 while allowing A_V to vary between {0} and {1} with R_V={2}".format(AV_range[0], AV_range[1], RV) )
         my_dof += 1
+        import specutils
 
 
     # observed wavelengths and fluxes 
@@ -148,8 +149,6 @@ def sed_chisqr(modelresults, observations, dof=1,
         tab = astropy.table.Table(tabledict, meta=meta)
 
         tab.write(os.path.join(modelresults.directory, 'observables', 'py_sed_chisq.fits'), overwrite=True)
-<<<<<<< HEAD
-=======
 
 
         # Save the results:
@@ -165,7 +164,6 @@ def sed_chisqr(modelresults, observations, dof=1,
 	message,/info, "Results stored to "+ directory+"/observables/sed_chisq.fits"
 
         """
->>>>>>> 526d4468bd3f38395d85e8eae0e5beb59ec26964
 
     return chi2s
 
@@ -300,8 +298,6 @@ def image_chisqr(modelresults, observations, wavelength=None, write=True,
         on screen. 
 
     """
-    #raise NotImplementedError("Not implemented yet")
-
     image = np.asarray(observations.image)
     psf = np.asarray(observations.psf)
     model = np.asarray(model.image)
