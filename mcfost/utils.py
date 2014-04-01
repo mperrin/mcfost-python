@@ -94,4 +94,55 @@ def find_closest(list_, item):
     minelt = min(list_,key=lambda x:abs(x-item))
     return np.where(np.asarray(list_) == minelt)[0][0]
 
+def ccm_extinction(Rv, lambda_ang):
+
+    """ 
+    Python implementation of the idl_lib extinction correction function
+    to be called by the SED chisqrd fitting method in the python version of
+    MCRE. Accepts Rv, the reddening index at V (Default = 3.1) and the 
+    wavelength in Angstroms. Extinction curve A(lambda)/A(V) is returned.
+    """
+    lambda_ang = np.asarray(lambda_ang)
+    inv_lam = 1.0/lambda_ang
+    #print 'inv_lam',inv_lam
+    s = len(lambda_ang)
+    a = np.zeroes((s))
+    b = np.zeroes((s)) # confirm proper syntax
+
+    # Range that CCM restrict it to.
+    ir = inv_lam<=1.1
+    #print 'ir',ir
+    c_ir = len(ir)
+    #flags = choose(greater(inv_lam,1.1),(-1,1))
+    
+    a[ir] = 0.574*inv_lam[ir]**1.61
+    b[ir] = -0.527*inv_lam[ir]**1.61
+
+    #opt = where inv_lam > 1.1 and inv_lam <= 3.3 then c_opt
+    opt = ((inv_lam > 1.1) && (inv_lam <= 3.3))
+    c_opt = len(opt)
+    y = np.asarray(inv_lam[opt] - 1.82)
+    a[opt] = 1+ 0.17699*y-0.50447*y**2 - 0.02427*y**3 + 0.72085*y**4 + 0.01979*y**5-0.77530*y**6 + 0.32999*y**7
+    b[opt] = 1.41338*y + 2.28306*y**2 +1.07233*y**3 - 5.38434*y**4 - 0.62251*y**5 + 5.30260*y**6 - 2.09002*y**7
+
+    #uv = where inv_lam > 3.3 and inv_lam <= 8.0 then c_uv
+    uv = ((inv_lam > 3.3) && (inv_lam <= 8.0))
+    c_uv = len(uv)
+    x = inv_lam[uv]
+    xm = x - 5.9
+    fa = -0.04473*(xm)**2 - 0.009779*(xm)**3
+    fb = 0.2130*(xm)**2 + 0.1207*(xm)**3
+    nulls = xm <= 0
+    fa[nulls] = 0.0
+    fb[nulls] = 0.0
+            
+    a[uv] = 1.752 - 0.316*x - 0.104/( (x-4.67)**2 +0.341) + fa
+    b[uv] = -3.090 + 1.825*x + 1.206/( (x-4.62)**2 + 0.263) + fb
+
+    # Compute the extintion at each wavelength and return
+    A_lambda = np.asarray((a+b)/Rv)
+    
+    return A_lambda
+
+
 
