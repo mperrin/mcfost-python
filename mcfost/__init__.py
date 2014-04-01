@@ -12,6 +12,7 @@ from chisqr import (sed_chisqr, image_chisqr)
 
 from run import (grid_generator, run_all_files, run_one_file, run_sed, run_image)
 
-from utils import setup_logging
+
+from utils import (setup_logging, ccm_extinction)
 setup_logging()
 

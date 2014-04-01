@@ -832,11 +832,12 @@ class ObservedImage(object):
     optionally along with associated uncertainty image and pixel mask.
 
     """
-    def __init__(self, filename, uncertainty=None, mask=None, wavelength=None):
+    def __init__(self, filename, uncertainty=None, mask=None, wavelength=None, psf=None):
         self.filename = filename
         self.uncertainty_filename = uncertainty
         self.mask_filename = mask
         self.wavelength = wavelength
+        self.psf = psf
 
     def __repr__(self):
         return "<Observed image at {0} microns>".format(self.wavelength)
