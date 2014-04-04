@@ -725,13 +725,13 @@ class ModelSED(MCFOST_SED_Base):
                 mycolor = tuple( c_imin*(1-relative_pos) + c_imax*relative_pos)
                 label = '$i={inc:.1f}^\circ$'.format(inc=self.inclinations[i]) if np.mod(i,label_multiple) == 0 else None
 
-                plt.loglog(self.wavelength, self.nu_fnu[i], 
+                plt.loglog(self.wavelength.to(units.micron).value, self.nu_fnu[i].to(units.W/units.m**2).value, 
                         label=label, linestyle=linestyle, marker=marker, color=mycolor, alpha=alpha )
         else:
             # Plot one inclination
             iclosest = np.abs(self.inclinations - float(inclination)).argmin()
             label = '$i={inc:.1f}^\circ$'.format(inc=self.inclinations[iclosest])
-            plt.loglog(self.wavelength, self.nu_fnu[iclosest], 
+            plt.loglog(self.wavelength.to(units.micron).value, self.nu_fnu[iclosest].to(units.W/units.m**2).value, 
                 label=label, linestyle=linestyle, marker=marker, color=color, alpha=alpha )
  
 
