@@ -45,9 +45,34 @@ class Paramfile(object):
         self._directory=directory
         self._readparfile(**kwargs)
 
-#    def __getattr__(self, key):
-#        stop()
-#        return self._dict[key]
+
+    @property
+    def wavelengths(self):
+        """ Wavelengths in microns for SED, as specified in the parameter file """
+        # compute or look up wavelength solution
+        if self.l_complete:
+            # use log sampled wavelength range
+            wavelengths_inc=np.exp( np.log(self.lambda_max/self.lambda_min)/(self.nwavelengths) )
+            return self.lambda_min * wavelengths_inc**(np.arange(self.nwavelengths)+0.5)
+        else:
+            # load user-specified wavelength range from file on disk
+            possible_wavelengths_files = [ 
+                os.path.join(self._directory, self.wavelengths_file), 
+                os.path.join(self._directory,"data_th",self.wavelengths_file), 
+                #os.path.join(os.getenv('MY_MCFOST_UTILS'),'Lambda',self.wavelengths_file) ,
+                os.path.join(os.getenv('MCFOST_UTILS'),'Lambda',self.wavelengths_file) ]
+            wavelengths_file = None
+            for possible_name in possible_wavelengths_files:
+                _log.debug("Checking for wavelengths file at "+possible_name)
+                if os.path.exists(possible_name):
+                    wavelengths_file=possible_name
+                    _log.debug("Found wavelengths file at "+wavelengths_file)
+                    break
+
+            if not os.path.exists(wavelengths_file):
+                raise IOError('Cannot find requested wavelength file: '+wavelengths_file)
+            return astropy.io.ascii.read(wavelengths_file, data_start=0,names=['wavelength'])['wavelength'] 
+
 
     def __getitem__(self, key):
         # enable dict-like access as well, for convenience
@@ -168,30 +193,7 @@ class Paramfile(object):
         set1part('l_separate', lineptr, 1, bool) 
         set1part('l_stokes', lineptr, 2, bool)  ; lineptr+=3
 
-        # compute or look up wavelength solution
-        if self.l_complete:
-            # use log sampled wavelength range
-            wavelengths_inc=np.exp( np.log(self.lambda_max/self.lambda_min)/(self.nwavelengths) )
-            self.wavelengths = self.lambda_min * wavelengths_inc**(np.arange(self.nwavelengths)+0.5)
-        else:
-            # load user-specified wavelength range from file on disk
-            possible_wavelengths_files = [ 
-                os.path.join(self._directory, self.wavelengths_file), 
-                os.path.join(self._directory,"data_th",self.wavelengths_file), 
-                #os.path.join(os.getenv('MY_MCFOST_UTILS'),'Lambda',self.wavelengths_file) ,
-                os.path.join(os.getenv('MCFOST_UTILS'),'Lambda',self.wavelengths_file) ]
-            wavelengths_file = None
-            for possible_name in possible_wavelengths_files:
-                _log.debug("Checking for wavelengths file at "+possible_name)
-                if os.path.exists(possible_name):
-                    wavelengths_file=possible_name
-                    _log.debug("Found wavelengths file at "+wavelengths_file)
-                    break
 
-            if not os.path.exists(wavelengths_file):
-                raise IOError('Cannot find requested wavelength file: '+wavelengths_file)
-            self.wavelengths = astropy.io.ascii.read(wavelengths_file, data_start=0,names=['wavelength'])['wavelength'] 
- 
         #-- Grid geometry and size --
         set1part('grid_type', lineptr, 1, int) ; lineptr+=1
         set1part('grid_n_rad', lineptr, 1, int)

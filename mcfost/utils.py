@@ -106,8 +106,8 @@ def ccm_extinction(Rv, lambda_ang):
     inv_lam = 1.0/lambda_ang
     #print 'inv_lam',inv_lam
     s = len(lambda_ang)
-    a = np.zeroes((s))
-    b = np.zeroes((s)) # confirm proper syntax
+    a = np.zeros((s))
+    b = np.zeros((s)) # confirm proper syntax
 
     # Range that CCM restrict it to.
     ir = inv_lam<=1.1
@@ -119,14 +119,14 @@ def ccm_extinction(Rv, lambda_ang):
     b[ir] = -0.527*inv_lam[ir]**1.61
 
     #opt = where inv_lam > 1.1 and inv_lam <= 3.3 then c_opt
-    opt = ((inv_lam > 1.1) && (inv_lam <= 3.3))
+    opt = ((inv_lam > 1.1) & (inv_lam <= 3.3))
     c_opt = len(opt)
     y = np.asarray(inv_lam[opt] - 1.82)
     a[opt] = 1+ 0.17699*y-0.50447*y**2 - 0.02427*y**3 + 0.72085*y**4 + 0.01979*y**5-0.77530*y**6 + 0.32999*y**7
     b[opt] = 1.41338*y + 2.28306*y**2 +1.07233*y**3 - 5.38434*y**4 - 0.62251*y**5 + 5.30260*y**6 - 2.09002*y**7
 
     #uv = where inv_lam > 3.3 and inv_lam <= 8.0 then c_uv
-    uv = ((inv_lam > 3.3) && (inv_lam <= 8.0))
+    uv = ((inv_lam > 3.3) & (inv_lam <= 8.0))
     c_uv = len(uv)
     x = inv_lam[uv]
     xm = x - 5.9

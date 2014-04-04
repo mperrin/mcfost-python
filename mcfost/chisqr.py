@@ -60,6 +60,7 @@ def sed_chisqr(modelresults, observations, dof=1,
     if vary_AV:
         _log.info("Computing chi^2 while allowing A_V to vary between {0} and {1} with R_V={2}".format(AV_range[0], AV_range[1], RV) )
         my_dof += 1
+        import specutils
 
 
     # observed wavelengths and fluxes 
@@ -168,7 +169,10 @@ def sed_chisqr(modelresults, observations, dof=1,
 
 
 
-def fit_dist_extinct(wavelength, observed_sed_nuFnu, error_observed_sed_nuFnu, model, Rv=3.1, modeldist=1.0, additional_free=None, logfit=False, error_observed_sed_nuFnu = None, distance_range=[0.0,1000.0],model_noise_frac=0.1, vary_av=True, vary_distance=True, av_range=[0.0,10.0],rv_range=[2.0,20.0],vary_rv=False, **kwargs):
+def fit_dist_extinct(wavelength, observed_sed_nuFnu, model, error_observed_sed_nuFnu = None, Rv=3.1, modeldist=1.0, 
+        additional_free=None, logfit=False,  
+        distance_range=[0.0,1000.0],model_noise_frac=0.1, 
+        vary_av=True, vary_distance=True, av_range=[0.0,10.0],rv_range=[2.0,20.0],vary_rv=False, **kwargs):
 
     """
     Adapted from the fit_dist_extinct3.pro MCRE file designed to allow 
@@ -248,7 +252,7 @@ def fit_dist_extinct(wavelength, observed_sed_nuFnu, error_observed_sed_nuFnu, m
         ln_err_obs = err_obs
         subset = observed_sed_nuFnu != 0.0  
         ln_observed_sed_nuFnu[subset] = np.log(observed_sed_nuFnu[subset])
-        ln_err_obs[subset] = err_obs[subset]/observed_sed_nuFnu[subset])
+        ln_err_obs[subset] = err_obs[subset]/observed_sed_nuFnu[subset]
 
     # How many degrees of freedom?
     dof = len(observed_sed_nuFnu) 
@@ -268,7 +272,7 @@ def fit_dist_extinct(wavelength, observed_sed_nuFnu, error_observed_sed_nuFnu, m
                 if logfit:
                     ln_vout = vout
                     ln_vout[subset] = np.log(vout[subset])
-                    chicomb = [ln_vout-ln_observed_sed_nuFnu)**2/(ln_err_obs**2 + (ln_vout*np.log(model_noise_frac))**2)
+                    chicomb = (ln_vout-ln_observed_sed_nuFnu)**2/(ln_err_obs**2 + (ln_vout*np.log(model_noise_frac))**2)
                 else:   
                     chicomb = (vout-observed_sed_nuFnu)**2/(err_obs**2 + (vout*model_noise_frac)**2)
 
@@ -297,8 +301,6 @@ def image_chisqr(modelresults, observations, wavelength=None, write=True,
         on screen. 
 
     """
-    #raise NotImplementedError("Not implemented yet")
-
     image = np.asarray(observations.image)
     psf = np.asarray(observations.psf)
     model = np.asarray(model.image)

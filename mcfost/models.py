@@ -10,6 +10,7 @@ import numpy as np
 import astropy.io.fits as fits
 import astropy.io.ascii as ascii
 import astropy.units as units
+import collections
 import logging
 _log = logging.getLogger('mcfost')
 
@@ -19,8 +20,8 @@ from .paramfiles import Paramfile, find_paramfile
 from . import utils
 
 
-class ModelImageLoader(object):
-    """ Helper class to implement on-demand loading of 
+class ModelImageCollection(collections.Mapping):
+    """ Helper collectin class to implement on-demand loading of 
     image data via a dict interface. The dict looks like it
     always contains all available images, and can be indexed via
     either floats or strings interchangably. 
@@ -41,21 +42,41 @@ class ModelImageLoader(object):
     """
     def __init__(self, modelresults):
         self._modelresults = modelresults
-
-    def keys(self):
-        return self._modelresults.image_wavelengths
-
-    def __getitem__(self, key):
-
-        return fits.open( self._getpath(key))[0]
+        self._loaded_fits = dict()
 
     def _getpath(self, key):
         canonical_wavelength = self._modelresults._standardize_wavelength(key)
         return os.path.join(self._modelresults.directory,"data_"+canonical_wavelength,"RT.fits.gz")
 
+    @property
+    def wavelengths(self):
+        return np.asarray(self._modelresults._wavelengths_lookup.values(), dtype=float) * units.micron
+        #return self._modelresults.image_wavelengths
+
     @property   
     def filenames(self):
         return [self._getpath(k) for k in self.keys()]
+
+    # Implement magic methods to make this compliant with the collections.Mapping abstract base class
+    # that way it will behave just like a python Dict
+    def keys(self):
+        # cast these as a list
+        return self._modelresults._wavelengths_lookup.values()
+        #return list(self._modelresults.image_wavelengths.value)
+
+    def __len__(self):
+        return len(self.keys())
+
+    def __iter__(self):
+        for i in self.keys():
+            yield self[i]
+
+    def __getitem__(self, key):
+        canonical_wavelength = self._modelresults._standardize_wavelength(key)
+
+        if canonical_wavelength not in self._loaded_fits.keys():
+            self._loaded_fits[canonical_wavelength] = fits.open( self._getpath(canonical_wavelength))[0]
+        return self._loaded_fits[canonical_wavelength]
 
 
 class MCFOST_Dataset(object):
@@ -147,7 +168,7 @@ class ModelResults(MCFOST_Dataset):
             wlstring = os.path.basename(wl).split('_')[1]
             self._wavelengths_lookup[float(wlstring)] = wlstring
 
-        self.images = ModelImageLoader(self)
+        self.images = ModelImageCollection(self)
         try:
             self.sed = ModelSED(directory=os.path.join(self.directory, 'data_th') )
         except:
@@ -179,53 +200,18 @@ class ModelResults(MCFOST_Dataset):
 
         """
 
+        raise DeprecationWarning("ModelResults.plot_sed is deprecated; use Modelresults.sed.plot() instead.")
+
         self.sed.plot(inclination=inclination, title=title, overplot=overplot, 
                 nlabels=nlabels, alpha=alpha, **kwargs)
 
         return
 
-        if title is None:
-            title=self.directory
-
-        dummy = self.sed_data # force auto loading of SED data if that hasn't already happened...
-
-        if not overplot: plt.cla()
-        # plot model SED for all inclinations
-        ninc = len(self.parameters.inclinations) # or self.parameters.im_rt_ninc  should be equivalent here...
-        phi = 1
-
-        if str(inclination)== 'all':
-            labelstep = 1 if nlabels is None else ninc/nlabels
-            for inc in range(ninc):
-                if self._RayTraceModeSED:
-                    label = "%4.1f$^o$" % (self.parameters.inclinations[inc])
-                else:
-                    incmin=np.arccos(1.-((inc)*1.0)/ninc)*180./3.1415926
-                    incmax=np.arccos(1.-((inc+1  )*1.0)/ninc)*180./3.1415926
-                    label = "%4.1f - %4.1f$^o$" % (incmin,incmax)
-
-
-                flux = self.sed_data[0,phi-1,inc,:]
-                if np.mod(inc,labelstep) !=0: # allow skipping some labels if many are present
-                    label=None
-                plt.loglog(self.parameters.wavelengths, flux, color=((ninc-inc)*1.0/ninc, 0, 0), label=label, alpha=alpha)
-        else:
-            wmin = np.argmin( abs(self.parameters.im_inclinations) - inclination)
-            print "Closest inclination found to %f is %f. " % (inclination, self.parameters.im_inclinations[wmin])
-            label = "%4.1f$^o$" % (self.parameters.im_inclinations[wmin])
-            flux = self.sed_data[0,phi-1,wmin,:]
-            plt.loglog(self.parameters.wavelengths, flux, color=((ninc-wmin)*1.0/ninc, 0, 0), label=label, alpha=alpha)
-
-        plt.xlabel("Wavelength ($\mu$m)")
-        plt.ylabel("$\\nu F_\\nu$ (W m$^{-2}$)")
-        plt.title("SED for "+title)
-        plt.gca().xaxis.set_major_formatter(utils.NicerLogFormatter())
-
     def plot_image(self, wavelength0, overplot=False, inclination=None, cmap=None, ax=None, 
             axes_units='AU',
             polarization=False, polfrac=False,
             psf_fwhm=None, 
-            vmin=None, vmax=None, dynamic_range=1e6):
+            vmin=None, vmax=None, dynamic_range=1e6, colorbar=False):
         """ Show one image from an MCFOST model
 
         Parameters
@@ -250,6 +236,8 @@ class ModelResults(MCFOST_Dataset):
             Units to label the axes in. May be 'AU', 'arcsec', 'deg', or 'pixels'
         psf_fwhm : float or None 
             convolve with PSF of this FWHM? Default is None for no convolution
+        colorbar : bool
+            Also draw a colorbar
 
         
 
@@ -272,7 +260,7 @@ class ModelResults(MCFOST_Dataset):
 
         # Read in the data and select the image of 
 
-        imHDU = self.image_data[wavelength]
+        imHDU = self.images[wavelength]
 
 
         inclin_index = utils.find_closest(self.parameters.inclinations, inclination)
@@ -394,7 +382,12 @@ class ModelResults(MCFOST_Dataset):
                 cax = plt.axes([0.92, 0.25, 0.02, 0.5])
                 plt.colorbar(ax2.images[0], cax=cax, orientation='vertical')
 
-    def plot_dust(self, *args, **kwargs):
+        if colorbar==True:
+            cb = plt.colorbar(mappable=ax.images[0])
+            cb.set_label("Intensity [$W/m^2/pixel$]")
+
+
+    def plot_dust_properties(self, *args, **kwargs):
         """ Plot dust scattering properties
 
 
@@ -725,13 +718,13 @@ class ModelSED(MCFOST_SED_Base):
                 mycolor = tuple( c_imin*(1-relative_pos) + c_imax*relative_pos)
                 label = '$i={inc:.1f}^\circ$'.format(inc=self.inclinations[i]) if np.mod(i,label_multiple) == 0 else None
 
-                plt.loglog(self.wavelength, self.nu_fnu[i], 
+                plt.loglog(self.wavelength.to(units.micron).value, self.nu_fnu[i].to(units.W/units.m**2).value, 
                         label=label, linestyle=linestyle, marker=marker, color=mycolor, alpha=alpha )
         else:
             # Plot one inclination
             iclosest = np.abs(self.inclinations - float(inclination)).argmin()
             label = '$i={inc:.1f}^\circ$'.format(inc=self.inclinations[iclosest])
-            plt.loglog(self.wavelength, self.nu_fnu[iclosest], 
+            plt.loglog(self.wavelength.to(units.micron).value, self.nu_fnu[iclosest].to(units.W/units.m**2).value, 
                 label=label, linestyle=linestyle, marker=marker, color=color, alpha=alpha )
  
 
@@ -774,12 +767,6 @@ class ObservedSED(MCFOST_SED_Base):
         return self._sed_table['wavelength'] *units.micron
 
     @property
-    def frequency(self):
-        """ Frequency in Hertz, as an astropy.Quantity"""
-        import astropy.constants as const
-        return (const.c/self.wavelength).to(units.Hz)
-
-    @property
     def uncertainty(self):
         """ Uncertainty in flux in Janskys, as an astropy.Quantity"""
         return self._sed_table['uncertainty'] * (units.Jy)
@@ -813,7 +800,7 @@ class ObservedSED(MCFOST_SED_Base):
 
     
 
-        plt.loglog(self.wavelength, nu_fnu, label=label, linestyle=linestyle, marker=marker, color=color, alpha=alpha )
+        plt.loglog(self.wavelength.value, nu_fnu.value, label=label, linestyle=linestyle, marker=marker, color=color, alpha=alpha )
         # for some reason the errorbar function hangs if fed Quantities so extract the values first:
         plt.errorbar( self.wavelength.value, nu_fnu.value, yerr =nu_fnu_uncert.value, linestyle=linestyle, marker=marker, color=color, alpha=alpha)
 
