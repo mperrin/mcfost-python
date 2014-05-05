@@ -34,7 +34,7 @@ def run_all_files(directory, loop_forever=False, **kwargs):
         keepgoing = loop_forever
 
 
-def run_one_file(filename, wavelengths=[], move_to_subdir=True):
+def run_one_file(filename, wavelengths=[], move_to_subdir=True, delete_previous=True):
     """ Run a given parameter file.
 
     Parameters
@@ -45,6 +45,9 @@ def run_one_file(filename, wavelengths=[], move_to_subdir=True):
         Should we create a subdirectory for this parameter file, and move
         the parameter file into that subdirectory, before running it? 
         This is useful for handling the output of grid_generator()
+    delete_previous : bool
+        Should we delete any previous calculation results if they already 
+        exist? Default is true. 
     """
     if not isinstance(filename, basestring):
         raise TypeError("First argument to run_all must be a filename.")
@@ -56,6 +59,9 @@ def run_one_file(filename, wavelengths=[], move_to_subdir=True):
     if move_to_subdir:
         _log.info("Relocating {0} to a subdirectory of the same name.".format(os.path.basename(filename)))
         modelname = os.path.splitext(os.path.basename(filename))[0]
+        modeldir = os.path.splitext(os.path.dirname(filename))[0]
+        #os.chdir(modeldir)
+        #_log.info( "model directory"+modeldir)
         os.mkdir(modelname)
         subprocess.call('chmod -R g+w '+modelname,shell=True)
         subprocess.call('mv '+filename+' '+modelname,shell=True)
@@ -63,15 +69,15 @@ def run_one_file(filename, wavelengths=[], move_to_subdir=True):
         filename = os.path.join(modelname, os.path.basename(filename))
 
 
-    run_sed(filename)
+    run_sed(filename, delete_previous=delete_previous)
 
     for wl in wavelengths:
-        run_image(filename, wl)
+        run_image(filename, wl, delete_previous=delete_previous)
 
     _log.info("Calculation complete.")
 
 
-def run_sed(filename,raytrace=True,  *args ):
+def run_sed(filename,raytrace=True, delete_previous=True, *args ):
     """ Run a MCFOST calculation of the SED
     
     Parameters
@@ -90,15 +96,26 @@ def run_sed(filename,raytrace=True,  *args ):
 
     directory = os.path.dirname(os.path.abspath(filename))
 
+    # Possibly clean up previous outputs
+    # MCFOST itself will do this once only and after that
+    # will fail, so it's useful to do this cleaning here.
+    outputpath = os.path.join(directory, 'data_th')
+    if delete_previous and os.path.isdir(outputpath):
+        _log.debug("Removing previous calculation results")
+        import shutil
+        shutil.rmtree(outputpath, ignore_errors=True)
+
     cmdstr = 'mcfost '+os.path.basename(filename)
     if raytrace: cmdstr += " -rt"
 
     subprocess.call("echo  '>> "+ cmdstr+"' >> output.log",shell=True, cwd=directory)
-    subprocess.call(cmdstr+' >> output.log',shell=True, cwd=directory)
+    result = subprocess.call(cmdstr+' >> output.log',shell=True, cwd=directory)
     subprocess.call('chmod -R g+w *',shell=True, cwd=directory)
+    _log.info("SED results written to {0}".format(outputpath))
+    _log.debug("Result: {0}".format(result))
 
 
-def run_image(filename, wavelength, raytrace=True, *args):
+def run_image(filename, wavelength, raytrace=True,  delete_previous=True, *args):
     """ Run a MCFOST calculation of the image 
     
     Parameters
@@ -117,6 +134,18 @@ def run_image(filename, wavelength, raytrace=True, *args):
     _log.info("Computing image at {1} microns for {0}".format(filename, wavelength))
 
     directory = os.path.dirname(os.path.abspath(filename))
+
+    # Possibly clean up previous outputs
+    # MCFOST itself will do this once only and after that
+    # will fail, so it's useful to do this cleaning here.
+    outputpath = os.path.join(directory, 'data_'+str(wavelength))
+    if delete_previous and os.path.isdir(outputpath):
+        _log.debug("Removing previous calculation results")
+        import shutil
+        shutil.rmtree(outputpath, ignore_errors=True)
+
+
+
     cmdstr = 'mcfost '+os.path.basename(filename)+' -img '+str(wavelength)
     if raytrace: cmdstr += " -rt"
 
