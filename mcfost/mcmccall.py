@@ -46,10 +46,13 @@ def mcmccall(params,paramrange, directory, paramfile):
     sampler.run_mcmc(p0, 1000)
 
 
+def lnprob_wrapper_esoha569(params, observations, )
 
 
 
-def lnprob(params, directory, paramfile):
+
+
+def lnprob(params, directory, paramfile, weights):
 
     """
     PARAMETERS
@@ -69,6 +72,10 @@ def lnprob(params, directory, paramfile):
 
     paramfile - string
          Parameter file to begin with. 
+    
+    weights - numpy array
+         Two element array giving the weights to 
+         apply to the sed [0] and image [1] chi2.
 
 
     USAGE
@@ -85,7 +92,7 @@ def lnprob(params, directory, paramfile):
 
     lnpsed = - 0.5*np.log(2*np.pi)*seduncert.size-0.5*sedchi-np.sum(-np.log(seduncert))
 
-    return lnpimage + lnpsed
+    return weights[0]*lnpimage + weights[1]*lnpsed
 
 
 
@@ -123,9 +130,14 @@ def mcmcwrapper(params, directory, paramfile):
 
     """
 
-
-    
-
+    """
+    Step 1: Get parameters for this step for emcee.
+    - Right a standalone function that will take in the list of parameters to vary and write the parameter files. This is unique to each object.
+    Step 2: Write new parameter files with these values.
+    Step 3: Run mcfost and store images and SEDs for this file. (Switch for running seds or images separately. )
+    Step 4: Calculate the chi2 values for the given model and SED.
+    Step 5: Pass the values to the log probability function. 
+    """
 
 
     return, imageuncert, imagechi, seduncert, sedchi

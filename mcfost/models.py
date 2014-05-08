@@ -752,10 +752,10 @@ class ObservedSED(MCFOST_SED_Base):
 
         # temporary hard coded default for development
         if filename is None: 
-            filename = '/Users/mperrin/data/mcfost/models_esoha569/data/observed_sed.txt'
+            filename = '/Users/swolff/Dropbox (GPI)/MCFOST_Testing/data/observed_sed.txt'
         self.filename = filename
 
-        self._sed_table = ascii.read(filename, data_start=0 ,names=['wavelength','flux','uncertainty','source'])
+        self._sed_table = ascii.read(filename, data_start=0 ,names=['wavelength','flux','uncertainty','source'],delimiter='\t')
 
     @property
     def flux(self):
