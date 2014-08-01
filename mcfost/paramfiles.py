@@ -5,7 +5,7 @@ import matplotlib.pyplot as pl
 import logging
 import glob
 import astropy, astropy.io.ascii
-_log = logging.getLogger('mcfostpy')
+_log = logging.getLogger('mcfost')
 
 # this lets you put "stop()" in your code to have a debugger breakpoint
 from IPython.core.debugger import Tracer; stop = Tracer()
@@ -694,7 +694,7 @@ class Paramfile(object):
         IDL MCRE re_translationtable.txt configuration file.
 
         """
-
+        
         if paramname == 'm_star':
             self.star['mass'] = value
         elif paramname == 't_star':

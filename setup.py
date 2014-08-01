@@ -21,7 +21,7 @@ from setuptools import setup, find_packages
 
 # set up package metadata for eventual use in PyPI
 setupargs = {
-    'name'          :       'mcfostpy',
+    'name'          :       'mcfost',
     'version'       :      	"0.01", 
     'description'   :       'Python utilities for MCFOST radiative transfer simulations',
     'fullname'      :       'MCFOST Python Tools',

@@ -262,7 +262,7 @@ def fit_dist_extinct(wavelength, observed_sed_nuFnu, model, error_observed_sed_n
 
 
 def image_chisqr(modelresults, observations, wavelength=None, write=True,
-        normalization='total', registration='integer_pixel'):
+        normalization='total', registration='sub_pixel'):
     """
     Not written yet - this is just a placeholder
 
@@ -286,10 +286,10 @@ def image_chisqr(modelresults, observations, wavelength=None, write=True,
     model = modelresults.images[wavelength].data
 
     #mask[:,:]=1
+    sz = len(mod_inclinations)
+    chisqr = np.zeros(sz)
 
-    chisqr = np.zeros(15)
-
-    for n in np.arange(15):
+    for n in np.arange(sz):
         model_n = np.asarray(model[0,0,n,:,:])
 
         # Convolve the model image with the appropriate psf
@@ -309,7 +309,7 @@ def image_chisqr(modelresults, observations, wavelength=None, write=True,
             dx = np.round(dx)
             dy = np.round(dy)
         #if registration == 'sub_pixel':
-            print dx, dy
+            #print dx, dy
         # Shift the model image to the same location as observations
         model_n = scipy.ndimage.interpolation.shift(model_n,np.asarray((dx,dy)))
 

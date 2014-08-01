@@ -1,4 +1,4 @@
-#
+#!/usr/bin/env python
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -78,10 +78,10 @@ def lnprior(theta):
     if (np.log10(amax) < 2.0 or np.log10(amax) > 4.0):
         return -np.inf
 
-    if (alpha < -2.0 or alpha > 0.0):
+    if (alpha < 1.0 or alpha > 1.5):
         return -np.inf
     
-    if (beta < 1.0 or beta > 1.5):
+    if (beta < -2.0 or beta > 0.0):
         return -np.inf
 
     if (weight < 0.3 or weight > 0.7):
@@ -147,8 +147,8 @@ def mcmcwrapper(theta):
 
     #STEP 3:
     # run mcfost in the given directory
-    subprocess.call('mcfost '+fnstring+'.para -rt',shell=True)
-    subprocess.call('mcfost '+fnstring+'.para -img 0.8 -rt',shell=True)
+    subprocess.call('mcfost_seq '+fnstring+'.para -rt',shell=True)
+    subprocess.call('mcfost_seq '+fnstring+'.para -img 0.8 -rt',shell=True)
 
     #STEP 4: 
     model = ModelResults('/Users/swolff/Disks/mcfost-python/'+fnstring)
@@ -171,7 +171,7 @@ def mcmcwrapper(theta):
     
     #imageuncert = np.sum(imageuncertainty)/len(imageuncertainty)
     # remove model image and sed
-    #subprocess.call('pwd',shell=True)
+    subprocess.call('pwd',shell=True)
     #subprocess.call('rm -r data_th',shell=True)
     #subprocess.call('rm -r data_0.8',shell=True)
     os.chdir(olddir)
@@ -179,7 +179,7 @@ def mcmcwrapper(theta):
     #STEP 5:
     return imageuncertainty, imagechi, seduncertainty.value, sedchi
 
-"""
+
 
 
 ######################################################## 
@@ -188,7 +188,7 @@ ntemps = 20
 nwalkers = 4096
 ndim = 7
 
-sampler=PTSampler(ntemps, nwalkers, ndim, lnprobab, lnprior, threads=4)
+sampler=PTSampler(ntemps, nwalkers, ndim, lnprobab, lnprior, threads=1)
 
 
 #############################################################
@@ -209,8 +209,8 @@ w0 = np.random.uniform(73.0,80.0,size=(ntemps,nwalkers))
 w1 = np.random.uniform(10,20,size=(ntemps,nwalkers))
 w2 = np.random.uniform(0.0001,0.001,size=(ntemps,nwalkers))
 w3 = np.random.uniform(100.0,3000.0,size=(ntemps,nwalkers))
-w4 = np.random.uniform(-2.0,0.0,size=(ntemps,nwalkers))
-w5 = np.random.uniform(1.2,1.4,size=(ntemps,nwalkers))
+w4 = np.random.uniform(1.2,1.4,size=(ntemps,nwalkers))
+w5 = np.random.uniform(-2.0,0.0,size=(ntemps,nwalkers))
 w6 = np.random.uniform(0.4,0.6,size=(ntemps,nwalkers))
 
 p0 = np.dstack((w0,w1,w2,w3,w4,w5,w6))
@@ -233,10 +233,10 @@ print 'Burn in complete'
 """
 
 
-for p, lnprob, lnlike in sampler.sample(p, lnprob0=lnprob,
-                                        lnlike0=lnlike,
-                                        iterations=niter, thin=10):
-    pass
+#for p, lnprob, lnlike in sampler.sample(p, lnprob0=lnprob,
+#                                        lnlike0=lnlike,
+#                                        iterations=niter, thin=10):
+ #   pass
 
 
 diskname='esoha569'
@@ -280,4 +280,4 @@ filename = diskname + '_ChainStats.txt'
 np.savetxt(filename, ChainStats)
 
 
-"""
+

@@ -5,7 +5,7 @@ import astropy.io.fits as fits
 import astropy.io.ascii as ioascii
 import os
 import logging
-_log = logging.getLogger('mcfostpy')
+_log = logging.getLogger('mcfost')
 
 from . import paramfiles
 from . import utils
