@@ -213,6 +213,10 @@ class Paramfile(object):
         set1part('RT_imax', lineptr, 2, float)
         set1part('RT_n_incl',lineptr , 3, int)
         set1part('RT_centered',lineptr , 4, bool) ; lineptr+=1
+        if float(self.version) >= 2.20:
+            set1part('RT_az_min', lineptr, 1, float)
+            set1part('RT_az_max', lineptr, 2, float)
+            set1part('RT_n_az',lineptr , 3, int) ; lineptr+=1
         set1part('distance', lineptr, 1, float) ; lineptr+=1
         if float(self.version) > 2.09:
             set1part('disk_pa', lineptr, 1, float) ; lineptr+=1  # only for > v2.09
@@ -510,6 +514,7 @@ class Paramfile(object):
         2013-01-05 updated to version 2.15
         2013-04-24 Substantial code rewrites & cleanup. Updated to version 2.17
         2014-01-12 Updated to version 2.19
+        2015-06-15 Updated to version 2.20
 
         """
         #par = self._dict
@@ -539,7 +544,7 @@ class Paramfile(object):
             return "T" if somebool else "F"
 
 
-        template = """2.19                      mcfost version
+        template = """2.20                      mcfost version
 
 #Number of photon packages
   {self.nbr_photons_eq_th:<10.5g}              nbr_photons_eq_th  : T computation
@@ -560,6 +565,7 @@ class Paramfile(object):
   {self.im_nx:<3d} {self.im_ny:3d} {self.im_map_size:5.1f}        grid (nx,ny), size [AU]
   {self.MC_n_incl} {self.MC_n_az}               MC : N_bin_incl, N_bin_az
   {self.RT_imin:<4.1f}  {self.RT_imax:<4.1f}  {self.RT_n_incl:>2d} {str_RT_centered}    RT: imin, imax, n_incl, centered ?
+  {self.RT_az_min:<4.1f}  {self.RT_az_max:<4.1f}  {self.RT_n_az:>2d}    RT: az_min, az_max, n_az
   {self.distance:<6.2f}                 distance (pc)
   {self.disk_pa:<6.2f}                  disk PA
   """.format(self=self,
