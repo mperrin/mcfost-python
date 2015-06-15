@@ -14,25 +14,25 @@ from IPython.core.debugger import Tracer; stop = Tracer()
 
 
 class Paramfile(object):
-    """ Object class interface to MCFOST parameter files 
+    """ Object class interface to MCFOST parameter files
 
 
-    Example: 
+    Example:
 
     par = Parfile('somefile.par')
 
 
     """
 
-    _minimum_version = 2.15  # minimum MCFOST version for this code to run 
+    _minimum_version = 2.15  # minimum MCFOST version for this code to run
     def __init__(self, filename=None, directory="./", **kwargs):
 
         # we jump through some hurdles here to allow the
         # user to provide either a filename OR a directory
         # as the first positional argument, and attempt to do
-        # the right thing in either case. 
+        # the right thing in either case.
         if filename is not None:
-            if os.path.isdir(filename): 
+            if os.path.isdir(filename):
                 dir=filename
                 filename=None
             dir = os.path.dirname(filename)
@@ -56,9 +56,9 @@ class Paramfile(object):
             return self.lambda_min * wavelengths_inc**(np.arange(self.nwavelengths)+0.5)
         else:
             # load user-specified wavelength range from file on disk
-            possible_wavelengths_files = [ 
-                os.path.join(self._directory, self.wavelengths_file), 
-                os.path.join(self._directory,"data_th",self.wavelengths_file), 
+            possible_wavelengths_files = [
+                os.path.join(self._directory, self.wavelengths_file),
+                os.path.join(self._directory,"data_th",self.wavelengths_file),
                 #os.path.join(os.getenv('MY_MCFOST_UTILS'),'Lambda',self.wavelengths_file) ,
                 os.path.join(os.getenv('MCFOST_UTILS'),'Lambda',self.wavelengths_file) ]
             wavelengths_file = None
@@ -71,7 +71,7 @@ class Paramfile(object):
 
             if not os.path.exists(wavelengths_file):
                 raise IOError('Cannot find requested wavelength file: '+wavelengths_file)
-            return astropy.io.ascii.read(wavelengths_file, data_start=0,names=['wavelength'])['wavelength'] 
+            return astropy.io.ascii.read(wavelengths_file, data_start=0,names=['wavelength'])['wavelength']
 
 
     def __getitem__(self, key):
@@ -101,12 +101,12 @@ class Paramfile(object):
         #
         # Warning - the following is pretty ugly code in many places, due to the
         #   need to accomodate the changes of the input file format over time.
-        #   Code has lots of hacks and workarounds added ad hoc as needed. 
+        #   Code has lots of hacks and workarounds added ad hoc as needed.
         #   Could use additional refactoring and cleanup...
         #
         #################
 
-   
+
         text = open(self.filename,'r').readlines()
 
         #--- First we define a variety of utility functions to be used below --
@@ -118,7 +118,7 @@ class Paramfile(object):
 #            try:
 #                if typ == bool:
 #                    # Python doesn't automatically cast T and F to True and False so implement
-#                    # that manually here. 
+#                    # that manually here.
 #                    val = str(text[linenum].split(None,partnum+1)[partnum-1])
 #                    self.__dict__[key] = val == 'T'
 #                else:
@@ -135,7 +135,7 @@ class Paramfile(object):
             try:
                 if typ == bool:
                     # Python doesn't automatically cast T and F to True and False so implement
-                    # that manually here. 
+                    # that manually here.
                     val = str(text[linenum].split(None,partnum+1)[partnum-1])
                     some_dict[key] = val == 'T'
                     #_log.info(" for {0} found {1} which is {2}".format(key, val, some_dict[key]))
@@ -151,11 +151,11 @@ class Paramfile(object):
         def dict2recarray(somedict):
             """ Convert dict to recarray while preserving types and names """
             dt = []
-            vals = []    
+            vals = []
             for item in somedict.items():
                 deftype =  type(item[1])
                 # force longer string field because the default behavior chops it to 1 character?!?
-                if deftype == str: deftype='S80' 
+                if deftype == str: deftype='S80'
                 dt.append( (item[0], deftype) )
 
                 vals.append(item[1])
@@ -173,8 +173,8 @@ class Paramfile(object):
         if self.version < self._minimum_version: raise Exception('Parameter file version must be at least {ver:.2f}'.format(ver=self._minimum_version))
 
         #-- Number of photon packages --
-        lineptr = 3 
-        if (float(self.version) < 2.15): 
+        lineptr = 3
+        if (float(self.version) < 2.15):
             set1part( 'nbr_parallel_loop', lineptr, 1, int) ; lineptr+=1
         else:
             self.nbr_parallel_loop = 1
@@ -190,7 +190,7 @@ class Paramfile(object):
         set1part('l_sed',  lineptr, 2, bool)
         set1part('l_complete', lineptr, 3, bool) ; lineptr+=1
         set1part('wavelengths_file', lineptr, 1, str) ; lineptr+=1
-        set1part('l_separate', lineptr, 1, bool) 
+        set1part('l_separate', lineptr, 1, bool)
         set1part('l_stokes', lineptr, 2, bool)  ; lineptr+=3
 
 
@@ -211,7 +211,7 @@ class Paramfile(object):
         set1part('MC_n_az',lineptr , 2, int) ; lineptr+=1
         set1part('RT_imin', lineptr, 1, float)
         set1part('RT_imax', lineptr, 2, float)
-        set1part('RT_n_incl',lineptr , 3, int)           
+        set1part('RT_n_incl',lineptr , 3, int)
         set1part('RT_centered',lineptr , 4, bool) ; lineptr+=1
         set1part('distance', lineptr, 1, float) ; lineptr+=1
         if float(self.version) > 2.09:
@@ -250,7 +250,7 @@ class Paramfile(object):
         #-- Scattering Method --
         set1part('scattering_method', lineptr, 1, int) ; lineptr+=1
         set1part('scattering_mie_hg', lineptr, 1, int) ; lineptr+=3
- 
+
         #-- Symmetries --
         set1part('l_image_symmetry', lineptr, 1, bool) ; lineptr+=1
         set1part('l_central_symmetry', lineptr, 1, bool) ; lineptr+=1
@@ -258,13 +258,13 @@ class Paramfile(object):
 
         #-- Disk physics / dust global properties --
         if float(self.version) >2.15:
-            set1part('dust_settling', lineptr, 1, int) 
+            set1part('dust_settling', lineptr, 1, int)
         else:
             # convert old T/F setting to current integer setting
             set1part('dust_settling', lineptr, 1, bool)
             self.dust_settling= 1 if self.dust_settling else 2
 
-        set1part('settling_exp_strat' ,lineptr, 2,float) 
+        set1part('settling_exp_strat' ,lineptr, 2,float)
         set1part('settling_a_strat' ,lineptr, 3,float) ; lineptr +=1
         if float(self.version) >=2.19:
             set1part('l_radial_migration', lineptr, 1, bool) ; lineptr+=1
@@ -275,7 +275,7 @@ class Paramfile(object):
             set1part('l_hydrostatic_equilibrium', lineptr, 1, bool) ; lineptr+=1
         else:
             self.l_hydrostatic_equilibrium = False
-        set1part('l_viscous_heating' ,lineptr, 1, bool) 
+        set1part('l_viscous_heating' ,lineptr, 1, bool)
         set1part('alpha_viscosity' ,lineptr, 2, float) ; lineptr+=1
         lineptr+=2
 
@@ -287,10 +287,10 @@ class Paramfile(object):
 
 #        if float(self.version) >=2.15:
 #            set1part( 'im_size_au', 22+d2, 3, float),
-#            if float(self.version) < 2.19: 
+#            if float(self.version) < 2.19:
 #                set1part( 'im_zoom', 22+d2, 4, float)
 #            else:
-#                self.__dict__['im_zoom'] = 1.0 
+#                self.__dict__['im_zoom'] = 1.0
 #            i=39  # points to nzones parameter # note: advance this counter ** after** you have read something in...
 #        else:
 #            set1part( 'gas_to_dust', 38+d2, 1, float),
@@ -329,7 +329,7 @@ class Paramfile(object):
             lineptr+=1
 
             set1partOfDict(density, 'flaring_exp', lineptr, 1, float) ; lineptr+=1
-            set1partOfDict(density, 'surface_density_exp', lineptr, 1, float) 
+            set1partOfDict(density, 'surface_density_exp', lineptr, 1, float)
             if self.version > 2.15:
                 set1partOfDict(density, 'gamma_exp', lineptr, 2, float)
             else:
@@ -384,7 +384,7 @@ class Paramfile(object):
                     lineptr+=2
 
                 else:
-                    # earlier versions than 2.12, so only one component allowed. 
+                    # earlier versions than 2.12, so only one component allowed.
                     dust_keys = [('filename', i+0, 1, str),
                             ('porosity', i+0, 2, float),
                             ('mass_fraction', i+0, 3, float),
@@ -406,20 +406,20 @@ class Paramfile(object):
         lineptr+=2
 
         # molecular RT settings
-        set1part('l_pop', lineptr, 1, bool) 
+        set1part('l_pop', lineptr, 1, bool)
         set1part('l_accurate_pop', lineptr, 2, bool)
-        set1part('l_LTE', lineptr, 3, bool) 
+        set1part('l_LTE', lineptr, 3, bool)
         set1part('molecular_profile_width', lineptr, 4, float)  ; lineptr+=1
         set1part('molecular_v_turb', lineptr, 1, float)  ; lineptr+=1
         set1part('molecular_nmol', lineptr, 1, float)  ; lineptr+=1
-        set1part('molecular_filename', lineptr, 1, str)  
+        set1part('molecular_filename', lineptr, 1, str)
         set1part('molecular_level_max', lineptr, 2, float)  ; lineptr+=1
-        set1part('molecular_vmax', lineptr, 1, float)  
+        set1part('molecular_vmax', lineptr, 1, float)
         set1part('molecular_n_speed', lineptr, 2, float)  ; lineptr+=1
-        set1part('l_molecular_abundance', lineptr, 1, bool)  
-        set1part('molecular_abundance', lineptr, 2, float)  
+        set1part('l_molecular_abundance', lineptr, 1, bool)
+        set1part('molecular_abundance', lineptr, 2, float)
         set1part('molecular_abundance_file', lineptr, 3, str) ; lineptr+=1
-        set1part('l_molecular_raytrace', lineptr, 1, bool)  
+        set1part('l_molecular_raytrace', lineptr, 1, bool)
         set1part('molecular_raytrace_n_lines', lineptr, 2, float); lineptr+=1
         lineptr+=1 # skip transition numbers for now
 
@@ -430,16 +430,16 @@ class Paramfile(object):
         self.stars = []
         for istar in range(self.nstar):
             star_dict={}
-            set1partOfDict(star_dict, 'temp', lineptr, 1, float) 
+            set1partOfDict(star_dict, 'temp', lineptr, 1, float)
             set1partOfDict(star_dict, 'radius', lineptr, 2, float)
             set1partOfDict(star_dict, 'mass', lineptr, 3, float)
             set1partOfDict(star_dict, 'x', lineptr, 4, float)
             set1partOfDict(star_dict, 'y', lineptr, 5, float)
-            set1partOfDict(star_dict, 'z', lineptr, 6, float) 
+            set1partOfDict(star_dict, 'z', lineptr, 6, float)
             set1partOfDict(star_dict, 'l_is_blackbody', lineptr, 7, bool) ; lineptr +=1
             set1partOfDict(star_dict, 'spectrum', lineptr, 1, str) ; lineptr +=1
             if float(self.version) >= 2.11:
-                set1partOfDict(star_dict, 'fUV', lineptr, 1, float) 
+                set1partOfDict(star_dict, 'fUV', lineptr, 1, float)
                 set1partOfDict(star_dict, 'slope_fUV', lineptr, 2, float)  ; lineptr+=1
             # convert star from dict into recarray
             self.stars.append(dict2recarray(star_dict))
@@ -464,15 +464,15 @@ class Paramfile(object):
                 elif  options[j] == "-rt":
                     self.im_raytraced = True
         else:
-            if verbose: print "could not read in command line options from MCFOST; using default grid settings"
+            if verbose: print("could not read in command line options from MCFOST; using default grid settings")
 
         #--- Derived quantities ---
 
         # compute a few extra things for convenience
         if self.im_nx == self.im_ny:
             self.im_xsize_au =  (2*self.im_map_size)
-            self.im_ysize_au =  (2*self.im_map_size) 
-        else: 
+            self.im_ysize_au =  (2*self.im_map_size)
+        else:
             # FIXME update if X and Y pixel sizes differ
             raise NotImplementedError('Need to implement size calc for unequal image axes')
 
@@ -562,7 +562,7 @@ class Paramfile(object):
   {self.RT_imin:<4.1f}  {self.RT_imax:<4.1f}  {self.RT_n_incl:>2d} {str_RT_centered}    RT: imin, imax, n_incl, centered ?
   {self.distance:<6.2f}                 distance (pc)
   {self.disk_pa:<6.2f}                  disk PA
-  """.format(self=self, 
+  """.format(self=self,
           str_l_temp=bstr(self.l_temp), # is there a better way to get a Bool to print as a single letter?
           str_l_sed=bstr(self.l_sed),
           str_l_complete=bstr(self.l_complete),
@@ -577,7 +577,7 @@ class Paramfile(object):
         template+="""
 #Scattering method
   {self.scattering_method:1d}                      0=auto, 1=grain prop, 2=cell prop
-  {self.scattering_mie_hg:1d}                      1=Mie, 2=hg (2 implies the loss of polarizarion) 
+  {self.scattering_mie_hg:1d}                      1=Mie, 2=hg (2 implies the loss of polarizarion)
 
 #Symmetries
   {str_image_symmetry:1s}                      image symmetry
@@ -635,8 +635,8 @@ class Paramfile(object):
   {dust[heating]:<2d}                      Heating method : 1 = RE + LTE, 2 = RE + NLTE, 3 = NRE
   {dust[amin]:<6.3f} {dust[amax]:6.1f}  {dust[aexp]:4.1f} {dust[ngrains]:3d}   amin, amax, aexp, nbr_grains
       """.format(dust = self.density_zones[0]['dust'][0])
-      
-        template+=""" 
+
+        template+="""
 #Molecular RT settings
   T T T 15.              lpop, laccurate_pop, LTE, profile width
   0.2                    v_turb (delta)
@@ -646,7 +646,7 @@ class Paramfile(object):
   T 1.e-6 abundance.fits.gz   cst molecule abundance ?, abundance, abundance file
   T  3                   ray tracing ?,  number of lines in ray-tracing
   1 2 3                  transition numbers
-      """ 
+      """
 
         template+="""
 #Star properties
@@ -656,7 +656,7 @@ class Paramfile(object):
   {star[temp]:<7.1f} {star[radius]:5.1f} {star[mass]:5.1f} {star[x]:5.1f} {star[y]:5.1f} {star[z]:5.1f} {str_is_blackbody:1s}       Temp, radius (solar radius),M (solar mass),x,y,z (AU), is a blackbody?
   {star[spectrum]:s}
   {star[fUV]:<5.1f}  {star[slope_fUV]:<5.1f}     fUV, slope_fUV """.format(star=recarray2dict(star), str_is_blackbody = 'T' if star['l_is_blackbody'] else 'F')
-        
+
         # % starkeys(['temp', 'radius', 'mass', 'x', 'y', 'z', 'spectrum'])
         return template
 
@@ -665,8 +665,8 @@ class Paramfile(object):
         """ Write an MCFOST parameter file to disk. Currently outputs v2.17 param files
 
 
-        WARNING: Not all parameters are allowed to vary, just the most useful ones. 
-        Lots of the basics are still hard coded. 
+        WARNING: Not all parameters are allowed to vary, just the most useful ones.
+        Lots of the basics are still hard coded.
         TBD fix later.
 
 
@@ -681,16 +681,16 @@ class Paramfile(object):
         outfile = open(outname, 'w')
         outfile.write( str(self))
         outfile.close()
-        print "  ==>> "+outname
+        print("  ==>> "+outname)
 
     def set_parameter(self, paramname, value):
-        """ Helper function for parameter setting. 
+        """ Helper function for parameter setting.
 
-        For many parameters this is a trivial one-line wrapper. 
+        For many parameters this is a trivial one-line wrapper.
         But for some of the nested structures inside e.g. the density or
         dust properties structs, it's convenient to define some
-        shortcuts for use in iterating over grids or MCMC/GA ensembles. 
-        This implements those shortcuts. 
+        shortcuts for use in iterating over grids or MCMC/GA ensembles.
+        This implements those shortcuts.
 
         Note: Shortcut names are consistent with those defined in the
         IDL MCRE re_translationtable.txt configuration file.
@@ -705,7 +705,7 @@ class Paramfile(object):
             self.star['radius'] = value
         elif paramname == 'dust_settling':
             self['dust_settling'] = value
-        # When iterating over properties of disk geometry, 
+        # When iterating over properties of disk geometry,
         # generally we mean to do so over the first density zone.
         elif paramname == 'dustmass' or paramname == 'dust_mass':
             self.density_zones[0]['dust_mass'] = value
@@ -722,7 +722,7 @@ class Paramfile(object):
         elif paramname == 'zone_type':
             self.density_zones[0]['zone_type'] = value
         # likewise, almost always when iterating over dust properties we want to
-        # iterate over the first dust component of the first zone. 
+        # iterate over the first dust component of the first zone.
         # If you want to do something more complicated, you'll have to
         # modify this or write your own code...
         elif paramname == 'dust_exponent':
@@ -736,7 +736,7 @@ class Paramfile(object):
         elif paramname == 'dust_porosity':
             self.density_zones[0]['dust'][0]['porosity'] = value
         else:
-            try: 
+            try:
                 self[paramname] = value
             except:
                 raise ValueError("Don't know how to set a parameter named '{0}'".format(paramname))
@@ -781,5 +781,3 @@ def find_paramfile(directory="./",  parfile=None, verbose=False, wavelength=None
 
     _log.debug('Par file found: '+str(output))
     return output
-
-
