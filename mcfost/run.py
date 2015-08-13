@@ -150,6 +150,43 @@ def run_image(filename, wavelength, raytrace=True,  delete_previous=True, *args)
     subprocess.call(cmdstr +' >> output.log',shell=True, cwd=directory)
     subprocess.call('chmod -R g+w *',shell=True, cwd=directory)
 
+def run_dust_prop(filename,  delete_previous=True,  sed=False, *args):
+    """ Run a MCFOST calculation of the dust properties
+    
+    Parameters
+    ------------
+    filename : string
+        Filename 
+    delete_previous : bool
+    sed : bool
+        if True, it computes the SED and the dust properties (option +dust_prop), 
+        else it computes only the dust properties (option -dust_prop)
+ 
+    """
+    if not isinstance(filename, basestring):
+        raise TypeError("First argument to run_dust_prop must be a filename.")
+    if not os.path.exists(filename):
+        raise IOError("Nonexistent file: "+filename)
+
+    _log.info("Computing dust properties for {0}".format(filename))
+
+    directory = os.path.dirname(os.path.abspath(filename))
+
+    # Possibly clean up previous outputs
+    # MCFOST itself will do this once only and after that
+    # will fail, so it's useful to do this cleaning here.
+    outputpath = os.path.join(directory, 'data_dust')
+    if delete_previous and os.path.isdir(outputpath):
+        _log.debug("Removing previous calculation results")
+        import shutil
+        shutil.rmtree(outputpath, ignore_errors=True)
+    if sed:
+        cmdstr = 'mcfost '+os.path.basename(filename)+' +dust_prop'
+    else:
+        cmdstr = 'mcfost '+os.path.basename(filename)+' -dust_prop'        
+    subprocess.call("echo  '>> "+ cmdstr+"' >> output.log",shell=True, cwd=directory)
+    subprocess.call(cmdstr +' >> output.log',shell=True, cwd=directory)
+    subprocess.call('chmod -R g+w *',shell=True, cwd=directory)
 
 
 #=====================================================================
