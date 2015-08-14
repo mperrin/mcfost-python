@@ -14,7 +14,7 @@ setup(
     url = "https://github.com/cpinte/mcfost-python",
 
     requires = ['astropy','numpy', 'matplotlib'],
-
+    packages = ['mcfost'],
     classifiers = [
         "Programming Language :: Python",
         "License :: OSI Approved :: BSD License",
