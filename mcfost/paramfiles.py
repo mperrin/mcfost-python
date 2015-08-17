@@ -8,7 +8,11 @@ import astropy, astropy.io.ascii
 _log = logging.getLogger('mcfost')
 
 # this lets you put "stop()" in your code to have a debugger breakpoint
-from IPython.core.debugger import Tracer; stop = Tracer()
+# Old versions of ipython didn't seems to have IPython.core.debugger
+try:
+  from IPython.core.debugger import Tracer; stop = Tracer()
+except ImportError:
+  pass
 
 # some extremely simple classes to serve as structs.
 
