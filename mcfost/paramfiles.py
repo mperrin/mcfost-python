@@ -5,7 +5,7 @@ import matplotlib.pyplot as pl
 import logging
 import glob
 import astropy, astropy.io.ascii
-_log = logging.getLogger('mcfostpy')
+_log = logging.getLogger('mcfost')
 
 # this lets you put "stop()" in your code to have a debugger breakpoint
 from IPython.core.debugger import Tracer; stop = Tracer()
@@ -19,7 +19,7 @@ class Paramfile(object):
 
     Example:
 
-    par = Parfile('somefile.par')
+    par = Paramfile('somefile.par')
 
 
     """
@@ -429,7 +429,7 @@ class Paramfile(object):
 
         lineptr+=2
 
-        #-- Star propertoes --
+        #-- Star properties --
         set1part('nstar', lineptr, 1,int) ; lineptr +=1
         self.stars = []
         for istar in range(self.nstar):
@@ -507,7 +507,7 @@ class Paramfile(object):
         return self.density_zones[0]['dust'][0]
 
     def __str__(self):
-        """ Return a nicely formatted text parameter file. Currently returns v2.17 format
+        """ Return a nicely formatted text parameter file. Currently returns v2.20 format
 
         HISTORY
         --------
@@ -668,8 +668,7 @@ class Paramfile(object):
 
 
     def writeto(self, outname='sample.par'):
-        """ Write an MCFOST parameter file to disk. Currently outputs v2.17 param files
-
+        """ Write an MCFOST parameter file to disk. Currently outputs v2.20 param files
 
         WARNING: Not all parameters are allowed to vary, just the most useful ones.
         Lots of the basics are still hard coded.
@@ -678,7 +677,7 @@ class Paramfile(object):
 
         Parameters
         ----------
-        outname : string
+         outname : string
             Output file name
 
         """
@@ -747,7 +746,8 @@ class Paramfile(object):
             except:
                 raise ValueError("Don't know how to set a parameter named '{0}'".format(paramname))
 
-def find_paramfile(directory="./",  parfile=None, verbose=False, wavelength=None):
+
+def find_paramfile(directory="./",  is_data_dir=True, parfile=None, verbose=False, wavelength=None):
     """ Find a MCFOST par file in a specified directory
 
     By default, look in the current directory of a model,
@@ -765,6 +765,9 @@ def find_paramfile(directory="./",  parfile=None, verbose=False, wavelength=None
 
     """
 
+    # We check if we are in a data directory or not
+    is_data_dir = (directory.split('_')[0] == "data")
+
     if parfile is not None:
         # TODO validate its existence, check if path name relative to dir?
         output = parfile
@@ -774,13 +777,12 @@ def find_paramfile(directory="./",  parfile=None, verbose=False, wavelength=None
         if wavelength is not None:
             directory = os.path.join(directory, "data_%s" % wavelength)
             _log.info("Since wavelength is %s, looking in %s subdir" % (wavelength,dir))
-        l = glob.glob(os.path.join(directory, "*.par"))
-        l+= glob.glob(os.path.join(directory, "*.para"))
+        l = glob.glob(os.path.join(directory, "*.par*"))
         if len(l) == 1:
             output = l[0]
         elif len(l) > 1:
-            _log.warning("Multiple par files found... returning first: "+l[0])
-            output = l[0]
+            _log.error("Multiple par files found...")
+            output = None
         else:
             _log.error("No par files found!")
             output = None
