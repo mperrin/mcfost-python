@@ -7,9 +7,9 @@ import os
 import logging
 _log = logging.getLogger('mcfostpy')
 
-import mcfost.paramfiles
-import mcfost.utils
-import mcfost.models
+from . import paramfiles
+from . import utils
+from . import models
 
 
 def plot_seds(dir="./",

@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name = 'mcfostpy',
+    name = 'mcfost',
     fullname = 'MCFOST Python Tools',
     version = "0.03",
     description = 'Python utilities for MCFOST radiative transfer simulations',

@@ -15,9 +15,9 @@ import logging
 _log = logging.getLogger('mcfost')
 
 #from . import plotting
-from mcfost.paramfiles import Paramfile, find_paramfile
+from .paramfiles import Paramfile, find_paramfile
 
-import mcfost.utils
+from . import utils
 
 
 class ModelImageCollection(collections.Mapping):
