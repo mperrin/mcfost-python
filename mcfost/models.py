@@ -50,7 +50,7 @@ class ModelImageCollection(collections.Mapping):
 
     @property
     def wavelengths(self):
-        return np.asarray(self._modelresults._wavelengths_lookup.values(), dtype=float) * units.micron
+        return np.asarray(list(self._modelresults._wavelengths_lookup.values()), dtype=float) * units.micron
         #return self._modelresults.image_wavelengths
 
     @property
@@ -89,7 +89,7 @@ class MCFOST_Dataset(object):
     @property
     def image_wavelengths(self):
         """ Wavelengths for which images are present, in microns """
-        return np.asarray(self._wavelengths_lookup.values(), dtype=float) * units.micron
+        return np.asarray(list(self._wavelengths_lookup.values()), dtype=float) * units.micron
 
     def _standardize_wavelength(self, wavelength):
         """ Utility function to return a "standardized" representation
@@ -262,7 +262,7 @@ class ModelResults(MCFOST_Dataset):
         imHDU = self.images[wavelength]
 
 
-        inclin_index = mcfost.utils.find_closest(self.parameters.inclinations, inclination)
+        inclin_index = utils.find_closest(self.parameters.inclinations, inclination)
         image = imHDU.data[0,0,inclin_index,:,:]
 
 
@@ -323,7 +323,7 @@ class ModelResults(MCFOST_Dataset):
             ax = plt.subplot(121)
 
         # Display the image!
-        ax = mcfost.utils.imshow_with_mouseover(ax, image,  norm=norm, cmap=cmap, extent=extent)
+        ax = utils.imshow_with_mouseover(ax, image,  norm=norm, cmap=cmap, extent=extent)
         ax.set_xlabel("Offset [{unit}]".format(unit=axes_units))
         ax.set_ylabel("Offset [{unit}]".format(unit=axes_units))
         ax.set_title("Image for "+wavelength+" $\mu$m")
@@ -375,7 +375,7 @@ class ModelResults(MCFOST_Dataset):
                 cmap2.set_under('black')
                 cmap2.set_bad('black')
 
-                ax2 = mcfost.utils.imshow_with_mouseover(ax2, polfrac_ar, vmin=0, vmax=1,  cmap=cmap2)
+                ax2 = utils.imshow_with_mouseover(ax2, polfrac_ar, vmin=0, vmax=1,  cmap=cmap2)
                 ax2.set_title("Polarization fraction")
 
                 cax = plt.axes([0.92, 0.25, 0.02, 0.5])
@@ -732,7 +732,7 @@ class ModelSED(MCFOST_SED_Base):
         plt.ylabel("$\\nu F_\\nu$ (W m$^{-2}$)")
         plt.title(title)
         ax = plt.gca()
-        ax.xaxis.set_major_formatter(mcfost.utils.NicerLogFormatter())
+        ax.xaxis.set_major_formatter(utils.NicerLogFormatter())
 
         if legend:
             plt.legend(loc='upper right')
@@ -807,7 +807,7 @@ class ObservedSED(MCFOST_SED_Base):
         plt.ylabel("$\\nu F_\\nu$ (W m$^{-2}$)")
         plt.title(title)
         ax = plt.gca()
-        ax.xaxis.set_major_formatter(mcfost.utils.NicerLogFormatter())
+        ax.xaxis.set_major_formatter(utils.NicerLogFormatter())
         return ax
 
 #----------------------------------------------------
