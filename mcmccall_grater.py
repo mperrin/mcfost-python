@@ -27,21 +27,35 @@ import logging
 _log = logging.getLogger('mcfost')
 
 
+
+# Set a few Parameters
+model_code = 'grater'
+belts = 1
+maindirectory = '/astro/4/mperrin/eods/Grater_EMCEE/'
+parameters = ['g','radius','inn_slope','out_slope','inclination','xoffset','yoffset','pa','flux']
+
+
 # Define the log likelihood 
 def lnprobab(theta):
+
+
 
     """
     PARAMETERS
     ----------
     Theta:
     Parameters to vary. 
-         theta[0] = inclination
-         theta[1] = scale_height
-         theta[2] = disk_mass
-         theta[3] = max_grain_size
-         theta[4] = alpha
-         theta[5] = beta
-         theta[6] = weights 
+         theta[0] = g; henyey-grenstein parameter
+         theta[1] = radius of the belt (AU)
+         theta[2] = inner slope (power law exp)
+         theta[3] = outer slope (power law exp)
+         theta[4] = Inclination (degrees, 90 = edge-on)
+         theta[5] = x offset of center (N/S)
+         theta[6] = y offset of center (E/W)
+         theta[7] = Position Angle (Degrees CCW from N)
+         theta[8] = Flux scaling
+
+         ** If there are multiple belts, parameters 0-8 repeat. **
          
 
     USAGE
@@ -51,50 +65,109 @@ def lnprobab(theta):
 
     """
 
-    imageuncert, imagechi, seduncert, sedchi = mcmcwrapper(theta)
 
+    imageuncert, imagechi = mcmcwrapper(theta)
 
     lnpimage = -0.5*np.log(2*np.pi)*imageuncert.size-0.5*imagechi-np.sum(-np.log(imageuncert))
 
-    lnpsed = -0.5*np.log(2*np.pi)*seduncert.size-0.5*sedchi-np.sum(-np.log(seduncert))
+    return lnpimage
 
-    return theta[6]*lnpimage + (1.0-theta[6])*lnpsed
+
+
+
 
 # Define the log Priors 
 def lnprior(theta):
     
-    inc    = theta[0]
-    ho     = theta[1]
-    mass   = theta[2]
-    amax   = theta[3]
-    alpha  = theta[4]
-    beta   = theta[5]
-    weight = theta[6]
+    g =           theta[0]
+    radius =      theta[1]
+    inn_slope =   theta[2]
+    out_slope =   theta[3]
+    inclination = theta[4]
+    xoffset =     theta[5]
+    yoffset =     theta[6]
+    pa =          theta[7]
+    flux =        theta[8]
     
     # include priors here
-    if (inc < 65.0 or inc > 90.0):
+    if (g < -1.0 or g > 1.0):
         return -np.inf    
     
-    if (ho < 5.0 or ho > 25.0):
+    if (radius < 150.0 or radius > 300.0):
         return -np.inf    
 
-    if (np.log10(mass) < -5.0 or np.log10(mass) > -3.0 or mass < 0.0):
+    if (inn_slope < 5.0 or inn_slope > 50.0):
         return -np.inf
 
-    if (np.log10(amax) < 2.0 or np.log10(amax) > 4.0 or amax < 0.03 or amax > 3000.0):
+    if (out_slope < -30.0 or out_slope > -2.0):
         return -np.inf
 
-    if (alpha < 1.0 or alpha > 1.5):
+    if (inclination < 40 or inclination > 70):
         return -np.inf
     
-    if (beta < -2.0 or beta > 0.0):
+    if (xoffset < -10.0 or xoffset > 10.0):
         return -np.inf
 
-    if (weight < 0.3 or weight > 0.7):
+    if (yoffset < -10.0 or yoffset > 10.0):
         return -np.inf
+
+    if (pa < 350.0 or pa > 360.0):
+        return -np.inf
+
+    if (flux < 1.5e-7 or flux > 1.5e-5):
+        return -np.inf
+
+######################################################
+###################### Outer Ring ####################
+######################################################
+
+"""
+    gb =           theta[9]
+    radiusb =      theta[10]
+    inn_slopeb =   theta[11]
+    out_slopeb =   theta[12]
+    inclinationb = theta[13]
+    xoffsetb =     theta[14]
+    yoffsetb =     theta[15]
+    pab =          theta[16]
+    fluxb =        theta[17]
+    
+    # include priors here
+    if (gb < -1.0 or gb > 1.0):
+        return -np.inf    
+    
+    if (radiusb < 300.0 or radiusb > 500.0):
+        return -np.inf    
+
+    if (inn_slopeb < 2.0 or inn_slopeb > 50.0):
+        return -np.inf
+
+    if (out_slopeb < -30.0 or out_slopeb > -2.0):
+        return -np.inf
+
+    if (inclinationb < 40 or inclinationb > 70):
+        return -np.inf
+    
+    if (xoffsetb < -50.0 or xoffsetb > 50.0):
+        return -np.inf
+
+    if (yoffsetb < -50.0 or yoffsetb > 50.0):
+        return -np.inf
+
+    if (pab < 350.0 or pab > 360.0):
+        return -np.inf
+
+    if (fluxb < 1.0e-8 or fluxb > 1.0e-6):
+        return -np.inf
+ 1.10-8 and  1.10-6.
+
+"""
+
 
     # otherwise ...
     return 0.0
+
+
 
 
 def mcmcwrapper(theta):
@@ -106,16 +179,11 @@ def mcmcwrapper(theta):
          Parameters to be used in this call
          to emcee.
 
-         For the purposes of ESO Halpha 569,
-         these are inclination, scale height, 
-         dust mass, amax, beta, alpha, and 
-         rstar. 
-
     USAGE
     -----
     Takes a parameter file, the variable parameters
-    and a directory. Creates the model image and 
-    SED, computes the chisqr, reads in the 
+    and a directory. Creates the model image and
+    computes the chisqr, reads in the 
     observables, and returns the uncertainties and 
     Chi^2 values. This is called by the function
     that calculates the likelihood function. 
@@ -130,27 +198,19 @@ def mcmcwrapper(theta):
     # STEP 1: This is passed via theta 
     # STEP 2:
     olddir=os.path.abspath(os.curdir)
-    maindir = '/astro/4/mperrin/eods/models_esoha569/ESOha569_EMCEE/'
+    maindir = maindirectory
     #par = Paramfile(maindir+'esoha569.para')
     par = Paramfile(maindir+'data/esoha569.para')
-    par.RT_imax = theta[0]
-    par.RT_imin = theta[0]
-    par.RT_n_incl = 1
-    par.set_parameter('scale_height',theta[1])
-    par.set_parameter('dust_mass',theta[2])
-    par.set_parameter('dust_amax',theta[3])
-    par.set_parameter('flaring',theta[4])
-    par.set_parameter('surface_density',theta[5])
-    par.set_parameter('gamma_exp',theta[5])
     # Do I need to write these, or just do this in memory?
     # write the parameter file in the default directory
-    fnstring = "{0:0.4g}".format(theta[0])+'_'+"{0:0.4g}".format(theta[1])+'_'+"{0:0.4g}".format(theta[2])+'_'+"{0:0.4g}".format(theta[3])+'_'+"{0:0.4g}".format(theta[4])+'_'+"{0:0.4g}".format(theta[5])+'_'+"{0:0.4g}".format(theta[6])
+    fnstring = "{0:0.4g}".format(theta[0])+'_'+"{0:0.4g}".format(theta[1])+'_'+"{0:0.4g}".format(theta[2])+'_'+"{0:0.4g}".format(theta[3])+'_'+"{0:0.4g}".format(theta[4])+'_'+"{0:0.4g}".format(theta[5])+'_'+"{0:0.4g}".format(theta[6])+'_'+"{0:0.4g}".format(theta[7]+'_'+"{0:0.4g}".format(theta[8]
     par.writeto(fnstring+'.para')
     modeldir = olddir+'/'+fnstring
     try:
         os.mkdir(modeldir)
     except:
         subprocess.call('rm -r '+modeldir,shell=True)
+        print 'removed model directory: ', modeldir 
         os.mkdir(modeldir)
 
     subprocess.call('chmod -R g+w '+modeldir,shell=True)
@@ -158,9 +218,8 @@ def mcmcwrapper(theta):
     os.chdir(modeldir)
 
     #modeldir 3:
-    # run mcfost in the given directory
+    # run grater in the given directory
     subprocess.call('mcfost '+fnstring+'.para -rt >> sedmcfostout.txt',shell=True)
-    subprocess.call('mcfost '+fnstring+'.para -img 0.8 -rt >> imagemcfostout.txt',shell=True)
 
     #STEP 4: 
     try:
@@ -168,7 +227,7 @@ def mcmcwrapper(theta):
     except IOError:
         print 'Model Failed'
         os.chdir(olddir)
-        return np.asarray([100000.0,100000.0]), 100000.0, np.asarray([100000.0,100000.0]), 100000.0
+        return np.asarray([1000000.0,1000000.0]), 1000000.0
         
     try:
         obs
@@ -177,26 +236,17 @@ def mcmcwrapper(theta):
         obs = Observations(maindir+'data')
 
     imagechi = image_chisqr(model,obs,wavelength=0.8)
-    sedchi = sed_chisqr(model, obs, dof=1, write=True, save=False, vary_distance=False,vary_AV=True, AV_range=[0.0])#AV_range=np.arange(0.0,10.25,0.25))
-    sedchi=sedchi[0]
-    imagechi=imagechi[0]
-    sedstring = 'SED {0}'.format(sedchi)+'  '
+    imagechi = imagechi[0]
     imagestring = 'Image {0}'.format(imagechi)
     
     f = open('chisqrd.txt','w')
-    f.write(sedstring)
     f.write(imagestring)
     f.close()
     
-    seduncertainty = obs.sed.nu_fnu_uncert
     imageuncertainty = obs.images[0.8].uncertainty
-    #seduncert = np.sum(seduncertainty.value)/len(seduncertainty)
     
-    #imageuncert = np.sum(imageuncertainty)/len(imageuncertainty)
-    # remove model image and sed
+
     subprocess.call('pwd',shell=True)
-    #subprocess.call('rm -r data_th',shell=True)
-    #subprocess.call('rm -r data_0.8',shell=True)
     os.chdir(olddir)
 
 
@@ -204,16 +254,15 @@ def mcmcwrapper(theta):
     model.images.closeimage()  
 
     #STEP 5:
-    return imageuncertainty, imagechi, seduncertainty.value, sedchi
-
+    return imageuncertainty, imagechi
 
 
 
 ######################################################## 
 
-ntemps = 2
+ntemps = 1
 nwalkers = 50
-ndim = 7
+ndim = 9
 
 sampler=PTSampler(ntemps, nwalkers, ndim, lnprobab, lnprior)
 # Use the MPIPool instead
@@ -231,28 +280,23 @@ if not pool.is_master():
 # Dont worry, the walkers quickly branch out and explore the
 # rest of the space.
 
-# inclination: w0
-# scale height: w1
-# dust mass: w2
-# max grain size: w3
-# alpha: w4
-# beta: w5
-# weights: w6
 
-w0 = np.random.uniform(73.0,80.0,size=(ntemps,nwalkers))
-w1 = np.random.uniform(10,20,size=(ntemps,nwalkers))
-w2 = np.random.uniform(0.0001,0.001,size=(ntemps,nwalkers))
-w3 = np.random.uniform(100.0,3000.0,size=(ntemps,nwalkers))
-w4 = np.random.uniform(1.2,1.4,size=(ntemps,nwalkers))
-w5 = np.random.uniform(-2.0,0.0,size=(ntemps,nwalkers))
-w6 = np.random.uniform(0.4,0.6,size=(ntemps,nwalkers))
+w0 = np.random.uniform(-1.0,1.0,size=(ntemps,nwalkers))
+w1 = np.random.uniform(150.0,300.0,size=(ntemps,nwalkers))
+w2 = np.random.uniform(5.0,50.0,size=(ntemps,nwalkers))
+w3 = np.random.uniform(-30.0,-2.0,size=(ntemps,nwalkers))
+w4 = np.random.uniform(40.0,70.0,size=(ntemps,nwalkers))
+w5 = np.random.uniform(-10.0,10.0,size=(ntemps,nwalkers))
+w6 = np.random.uniform(-10.0,10.0,size=(ntemps,nwalkers))
+w7 = np.random.uniform(350.0,360.0,size=(ntemps,nwalkers))
+w8 = np.random.uniform(1.5e-7,1.5e-5,size=(ntemps,nwalkers))
 
-p0 = np.dstack((w0,w1,w2,w3,w4,w5,w6))
+p0 = np.dstack((w0,w1,w2,w3,w4,w5,w6,w7,w8))
 #print p0.shape
 niter = 2000
 nburn = np.int(0.01*niter)
 
-diskname='esoha569'
+diskname='HD141569A'
 #f = open("burnchain.dat", "w")
 #f.close()
 
@@ -260,7 +304,7 @@ diskname='esoha569'
 ##################  BURN IN STAGE ####################
 ######################################################
 
-"""
+
 
 for p, lnprob, lnlike in sampler.sample(p0, iterations=nburn):
     #samples = sampler.chain[:,:,:].reshape((-1,ndim))
@@ -280,16 +324,17 @@ print 'Burn in complete'
 #pool.close()
 
 samples = sampler.chain[:,:,:].reshape((-1,ndim))
-fig = triangle.corner(samples, labels=["$i$","$Ho$","$M$","$amax$","$alpha$","$beta$","$w$"])#,truths=[i_true,Ho_true,M_true,amax_true,alpha_true,beta_true,w_true])
+fig = triangle.corner(samples, labels=parameters)
+#,truths=[i_true,Ho_true,M_true,amax_true,alpha_true,beta_true,w_true])
 fig.savefig("burntriangle.png")
 
 sampler.reset()
 
-"""
+
 #########################################################
 ################## RESTART FROM FILE ####################
 #########################################################
-
+"""
 olddiskname = '/Users/swolff/EMCEE/emceetests/141202chaind/esoha569'
 filename = olddiskname + '_inclinations.txt'
 inclres = np.loadtxt(filename)
@@ -341,27 +386,38 @@ for p, lnprob, lnlike in sampler.sample(p, iterations=50,storechain=True):
  #   pass
 #f.close()
 
-    inclres = np.ndarray.flatten(sampler.chain[:,:,:,0])
-    hores = np.ndarray.flatten(sampler.chain[:,:,:,1])
-    massres = np.ndarray.flatten(sampler.chain[:,:,:,2])
-    amaxres = np.ndarray.flatten(sampler.chain[:,:,:,3])
-    alphares = np.ndarray.flatten(sampler.chain[:,:,:,4])
-    betares = np.ndarray.flatten(sampler.chain[:,:,:,5])
-    weightres = np.ndarray.flatten(sampler.chain[:,:,:,6])
-    filename = diskname + '_inclinations.txt'
-    np.savetxt(filename, inclres)
-    filename = diskname + '_scale_heights.txt'
-    np.savetxt(filename, hores)
-    filename = diskname + '_dust_mass.txt'
-    np.savetxt(filename, massres)
-    filename = diskname + '_amax.txt'
-    np.savetxt(filename, amaxres)
-    filename = diskname + '_alpha.txt'
-    np.savetxt(filename, alphares)
-    filename = diskname + '_beta.txt'
-    np.savetxt(filename, betares)
-    filename = diskname + '_weights.txt'
-    np.savetxt(filename, weightres)
+"""
+
+gres = np.ndarray.flatten(sampler.chain[:,:,:,0])
+radiusres = np.ndarray.flatten(sampler.chain[:,:,:,1])
+innsloperes = np.ndarray.flatten(sampler.chain[:,:,:,2])
+outsloperes = np.ndarray.flatten(sampler.chain[:,:,:,3])
+inclinationres = np.ndarray.flatten(sampler.chain[:,:,:,4])
+xoffsetres = np.ndarray.flatten(sampler.chain[:,:,:,5])
+yoffsetres = np.ndarray.flatten(sampler.chain[:,:,:,6])
+pares = np.ndarray.flatten(sampler.chain[:,:,:,7])
+fluxres = np.ndarray.flatten(sampler.chain[:,:,:,8])
+
+    filename = diskname + '_'+parameters[0]+'.txt'
+    np.savetxt(filename, gres)
+    filename = diskname + '_'+parameters[1]+'.txt'
+    np.savetxt(filename, radiusres)
+    filename = diskname + '_'+parameters[1]+'.txt'
+    np.savetxt(filename, innsloperes)
+    filename = diskname + '_'+parameters[1]+'.txt'
+    np.savetxt(filename, outsloperes)
+    filename = diskname + '_'+parameters[1]+'.txt'
+    np.savetxt(filename, inclinationres)
+    filename = diskname + '_'+parameters[1]+'.txt'
+    np.savetxt(filename, xoffsetres)
+    filename = diskname + '_'+parameters[1]+'.txt'
+    np.savetxt(filename, yoffsetres)
+    filename = diskname + '_'+parameters[1]+'.txt'
+    np.savetxt(filename, pares)
+    filename = diskname + '_'+parameters[1]+'.txt'
+    np.savetxt(filename, fluxres)
+
+
 """
     ChainStats = np.zeros((7,3))
     ha = np.ndarray.flatten(sampler.chain[:,:,:,0])
@@ -384,7 +440,9 @@ for p, lnprob, lnlike in sampler.sample(p, iterations=50,storechain=True):
 samples = sampler.chain[0,:,:,:].reshape((-1,ndim))
 fig = triangle.corner(samples, labels=["$i$","$Ho$","$M$","$amax$","$alpha$","$beta$","$w$"])#,truths=[i_true,Ho_true,M_true,amax_true,alpha_true,beta_true,w_true])
 fig.savefig("triangle.png")
+
 """
+
 import pdb #@@@
 pdb.set_trace() #@@@
 print 'stop here' #@@@

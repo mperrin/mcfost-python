@@ -64,6 +64,14 @@ class ModelImageCollection(collections.Mapping):
         return self._modelresults._wavelengths_lookup.values()
         #return list(self._modelresults.image_wavelengths.value)
 
+    def closeimage(self):
+        for k in self.keys():
+            canonical_wavelength = self._modelresults._standardize_wavelength(k)
+            try:
+                self.loaded_fits[canonical_wavelength].close()
+            except:
+                print "Failed to close model image files."
+
     def __len__(self):
         return len(self.keys())
 
@@ -75,7 +83,10 @@ class ModelImageCollection(collections.Mapping):
         canonical_wavelength = self._modelresults._standardize_wavelength(key)
 
         if canonical_wavelength not in self._loaded_fits.keys():
-            self._loaded_fits[canonical_wavelength] = fits.open( self._getpath(canonical_wavelength))[0]
+             self._loaded_fits[canonical_wavelength] = fits.open( self._getpath(canonical_wavelength))[0]
+             #thismodelimage = fits.open( self._getpath(canonical_wavelength))
+             #self._loaded_fits[canonical_wavelength] = thismodelimage[0]
+             #thismodelimage.close()
         return self._loaded_fits[canonical_wavelength]
 
 
@@ -503,7 +514,9 @@ class Observations(MCFOST_Dataset):
         if not os.path.exists(summaryfile):
             raise ValueError("Cannot find index file of observed data: summary.txt")
 
-        summary = open(summaryfile).readlines()
+        summaryf = open(summaryfile)
+        summary = summaryf.readlines()
+        #summary = open(summaryfile).readlines()
 
         filenames = []
         types = []
@@ -525,6 +538,7 @@ class Observations(MCFOST_Dataset):
         self.file_wavelengths = np.asarray(wavelengths)
 
         self.images = OBSImageCollection(self)
+        summaryf.close()
 
     def __repr__(self):
         return "<MCFOST Observations in directory '{self.directory}'>".format(self=self)

@@ -284,6 +284,7 @@ def image_chisqr(modelresults, observations, wavelength=None, write=True,
     noise = im[wavelength].uncertainty
     psf = im[wavelength].psf
     model = modelresults.images[wavelength].data
+    
 
     #mask[:,:]=1
     sz = len(mod_inclinations)
@@ -312,13 +313,13 @@ def image_chisqr(modelresults, observations, wavelength=None, write=True,
             #print dx, dy
         # Shift the model image to the same location as observations
         model_n = scipy.ndimage.interpolation.shift(model_n,np.asarray((dx,dy)))
-
-    
+        
         chisquared=(image-model_n)**2.0/noise**2.0
         chisqr[n]=chisquared[mask !=0].sum()#/2500.0
         if dx == 0 or dy == 0:
             chisqr[n]=chisqr[n-1]+1.0
     
+#        modelresults.images.closeimage
         _log.info( "inclination {0} : {1:4.1f} deg has chi2 = {2:5g}".format(n, mod_inclinations[n], chisqr[n]))
 
     return chisqr
