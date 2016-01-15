@@ -1,4 +1,3 @@
-
 # Model class - main class for interacting with an entire model
 
 import warnings
@@ -151,10 +150,6 @@ class ModelResults(MCFOST_Dataset):
             raise IOError("Could not find a parameter file in that directory")
         self.parameters = Paramfile(self._paramfilename)
 
-        # check for existence of SEDs but don't load yet?
-        if not os.path.exists(os.path.join(self.directory, 'data_th', 'sed_rt.fits.gz')):
-            raise IOError("There does not appear to be an SED model output (data_th/sed_rt.fits.gz) in the model directory {0}".format(self.directory))
-        self._sed_data = None # see the property sed_data for the actual loading below
 
         # check for available images,
         # and keep a list of available wavelengths, both as a s
@@ -168,11 +163,13 @@ class ModelResults(MCFOST_Dataset):
             self._wavelengths_lookup[float(wlstring)] = wlstring
 
         self.images = ModelImageCollection(self)
+
+        # Check for SED
         try:
             self.sed = ModelSED(directory=os.path.join(self.directory, 'data_th') )
         except:
             self.sed = None
-            warnings.warn('No SED results were found in that directory.')
+            warnings.warn('No ray-traced SED results were found in that directory.')
 
     def __repr__(self):
         return "<MCFOST ModelResults in directory '{self.directory}'>".format(self=self)
@@ -570,7 +567,7 @@ class MCFOST_SED_Base(object):
 
 class ModelSED(MCFOST_SED_Base):
     """ Model SED class
-    Reads observations from disk; returns them as as astropy Units objects
+    Reads model SED from disk; returns them as as astropy Units objects
     """
 
     directory = None

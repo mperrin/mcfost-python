@@ -38,7 +38,7 @@ def plot_seds(dir="./",
     mr = models.ModelResults(dir)
     mr.sed.plot( **kwargs)
 
-	#    if parfile is None:
+
 
 def plot_lir_lstar(parfilename=None,dir="./", inclination=0):
     """ Estimate L_IR/L_star for a model.

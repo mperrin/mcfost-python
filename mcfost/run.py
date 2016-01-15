@@ -88,7 +88,6 @@ def run_sed(filename,raytrace=True, delete_previous=True, *args ):
     if not os.path.exists(filename):
         raise IOError("Nonexistent file: "+filename)
 
-
     _log.info("Computing SED for {0}".format(filename))
 
     directory = os.path.dirname(os.path.abspath(filename))

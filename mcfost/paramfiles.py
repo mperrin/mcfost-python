@@ -1,7 +1,5 @@
 import os
 import numpy as np
-import matplotlib
-import matplotlib.pyplot as pl
 import logging
 import glob
 import astropy, astropy.io.ascii
@@ -20,11 +18,9 @@ except ImportError:
 class Paramfile(object):
     """ Object class interface to MCFOST parameter files
 
-
     Example:
 
     par = Paramfile('somefile.par')
-
 
     """
 
@@ -115,22 +111,6 @@ class Paramfile(object):
 
         #--- First we define a variety of utility functions to be used below --
         # utility functions for pulling out specific items from a line
-
-#        def set1part(key,linenum, partnum, typ):
-#            """Parse out one item and set it as an attribute on this object. """
-#            if verbose: _log.info( "Looking for {key} on line {linenum} item {partnum} in '{text}'".format(key=key,linenum=linenum, partnum=partnum, type=typ, text=text[linenum].rstrip()))
-#            try:
-#                if typ == bool:
-#                    # Python doesn't automatically cast T and F to True and False so implement
-#                    # that manually here.
-#                    val = str(text[linenum].split(None,partnum+1)[partnum-1])
-#                    self.__dict__[key] = val == 'T'
-#                else:
-#                    self.__dict__[key] = typ(text[linenum].split(None,partnum+1)[partnum-1])
-#                if verbose: _log.info("    found: {0} = {1}".format(key, self.__dict__[key]))
-#            except:
-#                raise IOError("Could not parse line %d:'%s' item %d for '%s'" % (linenum, text[linenum][:-1], partnum, key))
-#
         def set1partOfDict(some_dict, key,linenum, partnum, typ):
             """ Parse out one item from the text file, cast its type, and
             save it into a dict"""
@@ -148,6 +128,7 @@ class Paramfile(object):
                 if verbose: _log.info("    found: {0} = {1}".format(key, some_dict[key]))
             except:
                 raise IOError("Could not parse line %d:'%s' item %d for '%s'" % (linenum, text[linenum][:-1], partnum, key))
+
         def set1part(key,linenum, partnum, typ):
             """ Same as above but a shorthand for using this own object's __dict__"""
             return set1partOfDict(self.__dict__, key, linenum, partnum, typ)
@@ -291,22 +272,6 @@ class Paramfile(object):
         #-- Number of Zones --
         # read in the different zones
         set1part( 'nzones' ,lineptr, 1,int) ; lineptr+=3
-
-
-#        if float(self.version) >=2.15:
-#            set1part( 'im_size_au', 22+d2, 3, float),
-#            if float(self.version) < 2.19:
-#                set1part( 'im_zoom', 22+d2, 4, float)
-#            else:
-#                self.__dict__['im_zoom'] = 1.0
-#            i=39  # points to nzones parameter # note: advance this counter ** after** you have read something in...
-#        else:
-#            set1part( 'gas_to_dust', 38+d2, 1, float),
-#            set1part( 't_start' ,42+d3, 1,float),
-#            set1part( 'sublimtemp' ,42+d3, 2,float),
-#            i=43  # points to nzones parameter # note: advance this counter ** after** you have read something in...
-#
-
 
         #-- Density Structure (1 per zone) --
         self.density_zones=[]
@@ -691,6 +656,7 @@ class Paramfile(object):
         outfile.write( str(self))
         outfile.close()
         print("  ==>> "+outname)
+
 
     def set_parameter(self, paramname, value):
         """ Helper function for parameter setting.
