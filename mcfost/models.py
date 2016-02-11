@@ -1,4 +1,3 @@
-
 # Model class - main class for interacting with an entire model
 
 import warnings
@@ -21,13 +20,15 @@ from . import utils
 
 
 class ModelImageCollection(collections.Mapping):
-    """ Helper collectin class to implement on-demand loading of 
+
+    """ 
+    Helper collection class to implement on-demand loading of
     image data via a dict interface. The dict looks like it
     always contains all available images, and can be indexed via
-    either floats or strings interchangably. 
+    either floats or strings interchangably.
 
     This returns a PrimaryHDU object, not a HDUlist, under the
-    assumption that MCFOST output files don't ever have more than one 
+    assumption that MCFOST output files don't ever have more than one
     extension.
 
     Most users will not need to instantiate this directly. Just
@@ -36,7 +37,7 @@ class ModelImageCollection(collections.Mapping):
     Example
     ---------
     mod = mcfostpy.ModelResults()
-    im_1_micron = mod.image_data[1.0]  # looks like array access, but is 
+    im_1_micron = mod.image_data[1.0]  # looks like array access, but is
                     # actually an automatic file read first, then access
 
     """
@@ -50,10 +51,11 @@ class ModelImageCollection(collections.Mapping):
 
     @property
     def wavelengths(self):
-        return np.asarray(self._modelresults._wavelengths_lookup.values(), dtype=float) * units.micron
+
+        return np.asarray(list(self._modelresults._wavelengths_lookup.values()), dtype=float) * units.micron
         #return self._modelresults.image_wavelengths
 
-    @property   
+    @property
     def filenames(self):
         return [self._getpath(k) for k in self.keys()]
 
@@ -72,6 +74,7 @@ class ModelImageCollection(collections.Mapping):
             except:
                 print "Failed to close model image files."
 
+
     def __len__(self):
         return len(self.keys())
 
@@ -83,16 +86,14 @@ class ModelImageCollection(collections.Mapping):
         canonical_wavelength = self._modelresults._standardize_wavelength(key)
 
         if canonical_wavelength not in self._loaded_fits.keys():
-             self._loaded_fits[canonical_wavelength] = fits.open( self._getpath(canonical_wavelength))[0]
-             #thismodelimage = fits.open( self._getpath(canonical_wavelength))
-             #self._loaded_fits[canonical_wavelength] = thismodelimage[0]
-             #thismodelimage.close()
+            self._loaded_fits[canonical_wavelength] = fits.open( self._getpath(canonical_wavelength))[0]
+        
         return self._loaded_fits[canonical_wavelength]
 
 
 class MCFOST_Dataset(object):
     """ Base class - can either be model results or
-    observations. Implements common behavior to each. 
+    observations. Implements common behavior to each.
     """
     def __init__(self, directory="./"):
         pass
@@ -100,11 +101,11 @@ class MCFOST_Dataset(object):
     @property
     def image_wavelengths(self):
         """ Wavelengths for which images are present, in microns """
-        return np.asarray(self._wavelengths_lookup.values(), dtype=float) * units.micron
+        return np.asarray(list(self._wavelengths_lookup.values()), dtype=float) * units.micron
 
     def _standardize_wavelength(self, wavelength):
         """ Utility function to return a "standardized" representation
-        of a wavelength, such that e.g. "2" microns, "2.0" microns, 
+        of a wavelength, such that e.g. "2" microns, "2.0" microns,
         "2.00e0" microns etc are all the same thing, and that thing is
         consistent with the directory names on disk produced by MCFOST"""
         wl = float(wavelength)
@@ -116,13 +117,13 @@ class MCFOST_Dataset(object):
 #----------------------------------------------------
 
 class ModelResults(MCFOST_Dataset):
-    """ One MCFOST model result set, possibly containing multiple inclinations 
-    
-    This class provides an object oriented interface to MCFOST model results, including SEDs 
+    """ One MCFOST model result set, possibly containing multiple inclinations
+
+    This class provides an object oriented interface to MCFOST model results, including SEDs
     and images.  It also casts results so that the astropy.units framework can be used
-    
-    For now this class assumes all your model results have been precomputed. 
-    I.e. it will not call mcfost itself to run anything new. 
+
+    For now this class assumes all your model results have been precomputed.
+    I.e. it will not call mcfost itself to run anything new.
 
     Because of how MCFOST works, in practice this class may actually represent multiple
     inclinations all calculated for the same set of physical parameters.
@@ -135,16 +136,16 @@ class ModelResults(MCFOST_Dataset):
     """ ModelSED object containing the computed SED """
 
     def __init__(self, directory="./", parameters=None):
-        """ Initialize model. 
-        
+        """ Initialize model.
+
         This does read in parameters, but does NOT automatically load
-        SED or image information. Those will be loaded automatically into memory when needed. 
+        SED or image information. Those will be loaded automatically into memory when needed.
         This optimization is to aid in loading large model sets at once.
 
         Parameters
         -----------
         directory : str
-            Directory path to the root dir of the model (i.e. the parent directoy containing 
+            Directory path to the root dir of the model (i.e. the parent directoy containing
             data_th, data_1.0 etc)
         parameters : filename
             Filename of MCFOST parameter file. Can be omitted if there is one unambiguous
@@ -163,12 +164,7 @@ class ModelResults(MCFOST_Dataset):
         self.parameters = Paramfile(self._paramfilename)
 
 
-        # check for existence of SEDs but don't load yet?
-        if not os.path.exists(os.path.join(self.directory, 'data_th', 'sed_rt.fits.gz')):
-            raise IOError("There does not appear to be an SED model output (data_th/sed_rt.fits.gz) in the model directory {0}".format(self.directory))
-        self._sed_data = None # see the property sed_data for the actual loading below
-
-        # check for available images, 
+        # check for available images,
         # and keep a list of available wavelengths, both as a s
         image_waves = glob.glob(os.path.join(self.directory, 'data_[0123456789]*'))
         if image_waves is None:
@@ -180,19 +176,22 @@ class ModelResults(MCFOST_Dataset):
             self._wavelengths_lookup[float(wlstring)] = wlstring
 
         self.images = ModelImageCollection(self)
+
+
+        # Check for SED
         try:
             self.sed = ModelSED(directory=os.path.join(self.directory, 'data_th') )
         except:
             self.sed = None
-            warnings.warn('No SED results were found in that directory.')
+            warnings.warn('No ray-traced SED results were found in that directory.')
 
     def __repr__(self):
         return "<MCFOST ModelResults in directory '{self.directory}'>".format(self=self)
 
-    def plot_SED(self, inclination='all', title=None, overplot=False, 
+    def plot_SED(self, inclination='all', title=None, overplot=False,
             nlabels=None, alpha=0.75, **kwargs):
         """ Plot SED(s). Set inclination=value to plot just one, or leave blank for all
-    
+
         This will plot either an RT or MC mode SED. By default RT is tried first.
 
         Parameters
@@ -205,7 +204,7 @@ class ModelResults(MCFOST_Dataset):
             Transparency for plots
         inclination : string 'all' or float
             'all' to plot all inclinations, else just the
-            desired inclination (specifically the SED whose 
+            desired inclination (specifically the SED whose
             inclination is closest to the specified floating point value)
 
 
@@ -213,15 +212,17 @@ class ModelResults(MCFOST_Dataset):
 
         raise DeprecationWarning("ModelResults.plot_sed is deprecated; use Modelresults.sed.plot() instead.")
 
-        self.sed.plot(inclination=inclination, title=title, overplot=overplot, 
+
+        self.sed.plot(inclination=inclination, title=title, overplot=overplot,
                 nlabels=nlabels, alpha=alpha, **kwargs)
 
         return
 
-    def plot_image(self, wavelength0, overplot=False, inclination=None, cmap=None, ax=None, 
+
+    def plot_image(self, wavelength0, overplot=False, inclination=None, cmap=None, ax=None,
             axes_units='AU',
             polarization=False, polfrac=False,
-            psf_fwhm=None, 
+            psf_fwhm=None,
             vmin=None, vmax=None, dynamic_range=1e6, colorbar=False):
         """ Show one image from an MCFOST model
 
@@ -245,12 +246,11 @@ class ModelResults(MCFOST_Dataset):
             default vmin is vmax/dynamic range. Default dynamic range is 1e6.
         axes_units : str
             Units to label the axes in. May be 'AU', 'arcsec', 'deg', or 'pixels'
-        psf_fwhm : float or None 
+        psf_fwhm : float or None
             convolve with PSF of this FWHM? Default is None for no convolution
         colorbar : bool
             Also draw a colorbar
 
-        
 
         To Do:
         * Add convolution with PSFs
@@ -259,7 +259,7 @@ class ModelResults(MCFOST_Dataset):
         """
 
         wavelength = self._standardize_wavelength(wavelength0)
-        if inclination is None: 
+        if inclination is None:
             inclination = self.parameters.inclinations[len(self.parameters.inclinations)/2]
 
         if not overplot:
@@ -269,7 +269,7 @@ class ModelResults(MCFOST_Dataset):
 
         if ax is None: ax = plt.gca()
 
-        # Read in the data and select the image of 
+        # Read in the data and select the image of
 
         imHDU = self.images[wavelength]
 
@@ -315,8 +315,8 @@ class ModelResults(MCFOST_Dataset):
         halfsize = (np.asarray(image.shape))/2 * pixelscale
         extent = [-halfsize[0], halfsize[0], -halfsize[1], halfsize[1]]
 
-        
-        
+
+
 
 
 
@@ -403,7 +403,7 @@ class ModelResults(MCFOST_Dataset):
 
 
         Plot the dust scattering properties as calculated by MCFOST
-        for some given collection of grains. 
+        for some given collection of grains.
 
         Note: For this to work you must have first saved dust properties
         to disk using the ``mcfost somefile.par -dust_prop``
@@ -414,19 +414,19 @@ class ModelResults(MCFOST_Dataset):
 
     def describe(self):
         """ Return a descriptive brief paragraph on what results are present """
-        print "Model results in {self.directory} for {parfn}".format(self=self, parfn = os.path.basename(self._paramfilename))
-        print "    Model has {0} inclinations from {1} to {2}".format(len(self.parameters.inclinations), min(self.parameters.inclinations), max(self.parameters.inclinations))
+        print("Model results in {self.directory} for {parfn}".format(self=self, parfn = os.path.basename(self._paramfilename)))
+        print("    Model has {0} inclinations from {1} to {2}".format(len(self.parameters.inclinations), min(self.parameters.inclinations), max(self.parameters.inclinations)))
         if self.sed is None:
-            print "    No SED data present"
+            print("    No SED data present")
         else:
-            print "    SED computed from {par.lambda_min} - {par.lambda_max} microns using {par.nwavelengths} wavelengths".format(par=self.parameters)
-        print "    Images computed for {0} wavelengths: {1}".format(len(self.image_wavelengths), self.image_wavelengths)
+            print("    SED computed from {par.lambda_min} - {par.lambda_max} microns using {par.nwavelengths} wavelengths".format(par=self.parameters))
+        print("    Images computed for {0} wavelengths: {1}".format(len(self.image_wavelengths), self.image_wavelengths))
 
         if os.path.exists(os.path.join(self.directory, 'data_dust/kappa.fits.gz')):
-            print "    Dust scattering properties have been saved to disk for that model grain population."
+            print("    Dust scattering properties have been saved to disk for that model grain population.")
 
     def calc_chisqr(self, observed, weights=None, **kwargs):
-        """ Calculate chi^2 statistic based on comparison with observations 
+        """ Calculate chi^2 statistic based on comparison with observations
 
 
         Parameters
@@ -457,7 +457,7 @@ class ModelResults(MCFOST_Dataset):
 
         if self.sed is None:
             raise IOError("No SED data present; cannot compute chi^2.")
- 
+
         _log.info("Computing SED chi^2")
         sed_chi2 = chisqr.sed_chisqr(self, observed, **kwargs)  * weights[0]
 
@@ -475,8 +475,8 @@ class ModelResults(MCFOST_Dataset):
 #----------------------------------------------------
 
 class Observations(MCFOST_Dataset):
-    """ Class for observational data on a target 
-    
+    """ Class for observational data on a target
+
     To the extent possible, the API is consistent with that of the ModelResults class.
     That is, the names and functionality of attributes and methods should be similar
     to the extent possible given the differences in the underlying data.
@@ -506,7 +506,7 @@ class Observations(MCFOST_Dataset):
 
         """
 
-        if directory is None or not os.path.isdir(directory): 
+        if directory is None or not os.path.isdir(directory):
             raise ValueError("Not a valid directory: "+directory)
 
         self.directory = directory
@@ -545,27 +545,27 @@ class Observations(MCFOST_Dataset):
 
     def describe(self):
         """ Return a descriptive brief paragraph on what results are present """
-        print "Observations in {self.directory}".format(self=self)
+        print("Observations in {self.directory}".format(self=self))
         if self.sed is None:
-            print "    No SED data present"
+            print("    No SED data present")
         else:
-            print "    SED from {0} - {1} microns at {2} wavelengths".format(self.sed.wavelength.min(), self.sed.wavelength.max(), self.sed.wavelength.size)
-        print "    Images available for {0} wavelengths: {1}".format(len(self.image_wavelengths), self.image_wavelengths)
+            print("    SED from {0} - {1} microns at {2} wavelengths".format(self.sed.wavelength.min(), self.sed.wavelength.max(), self.sed.wavelength.size))
+        print("    Images available for {0} wavelengths: {1}".format(len(self.image_wavelengths), self.image_wavelengths))
 
 
- 
+
 #----------------------------------------------------
 
 class MCFOST_SED_Base(object):
-    """ Base SED class, implements common functionality 
-    
+    """ Base SED class, implements common functionality
+
     Attributes include:
         .flux, .uncertainty: in Jy
         .nu_fnu, .nu_fnu_uncert: in W/m^2
         .wavelength:  in microns
         .frequency: in Hz
     """
-    def __init__(self, ): 
+    def __init__(self, ):
         pass
 
     @property
@@ -586,8 +586,8 @@ class MCFOST_SED_Base(object):
 
 
 class ModelSED(MCFOST_SED_Base):
-    """ Model SED class 
-    Reads observations from disk; returns them as as astropy Units objects 
+    """ Model SED class
+    Reads model SED from disk; returns them as as astropy Units objects
     """
 
     directory = None
@@ -599,7 +599,7 @@ class ModelSED(MCFOST_SED_Base):
     def __init__(self, directory="./",filename=None, parameters=None):
         self._sed_type = 'Model'
         self.directory = os.path.abspath(directory)
-        if filename is None: 
+        if filename is None:
             filename = os.path.join(self.directory, 'sed_rt.fits.gz')
         if not os.path.exists(filename): raise IOError("SED files does not exist: "+filename)
         self.filename = filename
@@ -620,20 +620,20 @@ class ModelSED(MCFOST_SED_Base):
         """ Wavelength in microns, as an astropy.Quantity"""
         return self.parameters.wavelengths * units.micron
 
-    @property 
+    @property
     def nu_fnu(self):
         """ Spectral energy distribution in W/m^2, as an astropy.Quantity
 
         Note this will be a 2D array containing the SED for all inclinations that were calculated
         in that model.
 
-        This implements lazy loading for SED data; no files are read until the 
+        This implements lazy loading for SED data; no files are read until the
         user tries to access this attribute, at which point the SED data is
         automatically loaded."""
         # The axes of the SED data from MCFOST are [stokes, azimuth, inclination, wavelength] in Python axis order
 
         # if it's already loaded then just return it
-        if self._sed_data is not None: 
+        if self._sed_data is not None:
             # return the [inclination, wavelength] array for total intensity at first azimuth
             return self._sed_data[0,0] * (units.W / units.m**2)
         else:
@@ -645,7 +645,7 @@ class ModelSED(MCFOST_SED_Base):
             elif os.path.exists( os.path.join(self.directory,'sed2.fits.gz')):
                 self._RayTraceModeSED = False
                 self._sed_data = fits.getdata(os.path.join(self.directory,'sed2.fits.gz'))
-                _log.debug("loading SED data from MC mode SED") 
+                _log.debug("loading SED data from MC mode SED")
             # Also look one data_th deeper for back compatibility with the case where
             # this class was created pointing at the model root directory
             elif os.path.exists( os.path.join(self.directory,'data_th/sed_rt.fits.gz')):
@@ -655,7 +655,7 @@ class ModelSED(MCFOST_SED_Base):
             elif os.path.exists( os.path.join(self.directory,'data_th/sed2.fits.gz')):
                 self._RayTraceModeSED = False
                 self._sed_data = fits.getdata(os.path.join(self.directory,'data_th/sed2.fits.gz'))
-                _log.debug("loading SED data from MC mode SED") 
+                _log.debug("loading SED data from MC mode SED")
             else:
                 _log.error("No SED data present in "+self.directory+"!")
 
@@ -675,19 +675,19 @@ class ModelSED(MCFOST_SED_Base):
         return (self.nu_fnu / self.frequency).to(units.Jy)
 
 
-    def plot(self, title=None, inclination='all', overplot=False, 
-             alpha=0.75, marker='None', linestyle='-', 
-             nlabels=None, legend=True, 
-             color='red',color_imin='blue', color_imax='red', 
+    def plot(self, title=None, inclination='all', overplot=False,
+             alpha=0.75, marker='None', linestyle='-',
+             nlabels=None, legend=True,
+             color='red',color_imin='blue', color_imax='red',
              **kwargs):
         """ Plot observed SED
-    
+
         Parameters
         -----------
         inclination : string or float
             Either the string 'all' to plot all inclinations or
-            a floating point value to plot the closest available 
-            inclination to that value. 
+            a floating point value to plot the closest available
+            inclination to that value.
         nlabels : int or None
             limit the number of inclination labels in the legend? set to None to show all (default)
         legend : bool
@@ -695,14 +695,14 @@ class ModelSED(MCFOST_SED_Base):
         overplot : bool
             Should this overplot or make a new plot?
         alpha : float
-            Matplotlib alpha channel setting for plot transparency. 
+            Matplotlib alpha channel setting for plot transparency.
         marker : str
             Matplotlib plot marker specification
         color : str or tuple
             Matplotlib color specification, for the case of plotting a single inclination
         color_imin, color_imax : str or tuple
             Matplotlib color specifications for min and max inclinations, for the case
-            of plotting all inclinations in the model. 
+            of plotting all inclinations in the model.
         linestyle : str
             Matplotlib line style specification
 
@@ -734,15 +734,17 @@ class ModelSED(MCFOST_SED_Base):
                 mycolor = tuple( c_imin*(1-relative_pos) + c_imax*relative_pos)
                 label = '$i={inc:.1f}^\circ$'.format(inc=self.inclinations[i]) if np.mod(i,label_multiple) == 0 else None
 
-                plt.loglog(self.wavelength.to(units.micron).value, self.nu_fnu[i].to(units.W/units.m**2).value, 
+
+                plt.loglog(self.wavelength.to(units.micron).value, self.nu_fnu[i].to(units.W/units.m**2).value,
                         label=label, linestyle=linestyle, marker=marker, color=mycolor, alpha=alpha )
         else:
             # Plot one inclination
             iclosest = np.abs(self.inclinations - float(inclination)).argmin()
             label = '$i={inc:.1f}^\circ$'.format(inc=self.inclinations[iclosest])
-            plt.loglog(self.wavelength.to(units.micron).value, self.nu_fnu[iclosest].to(units.W/units.m**2).value, 
+
+            plt.loglog(self.wavelength.to(units.micron).value, self.nu_fnu[iclosest].to(units.W/units.m**2).value,
                 label=label, linestyle=linestyle, marker=marker, color=color, alpha=alpha )
- 
+
 
 
         plt.xlabel("Wavelength ($\mu$m)")
@@ -757,19 +759,21 @@ class ModelSED(MCFOST_SED_Base):
 
 
 class ObservedSED(MCFOST_SED_Base):
-    """ Observed SED class. 
-    Reads observations from disk; returns them as as astropy Units objects 
+    """ Observed SED class.
+    Reads observations from disk; returns them as as astropy Units objects
     """
 
     def __init__(self, filename=None, uncertainty=None, mask=None, format='no_header'):
         self._sed_type = 'Observed'
 
         # temporary hard coded default for development
-        if filename is None: 
-            filename = '/Users/swolff/Dropbox (GPI)/MCFOST_Testing/data/observed_sed.txt'
+
+        if filename is None:
+            filename = './data/observed_sed.txt'
         self.filename = filename
 
-        self._sed_table = ascii.read(filename, data_start=0 ,names=['wavelength','flux','uncertainty','source'],delimiter='\t')
+        self._sed_table = ascii.read(filename, format=format,
+                names=['wavelength','flux','uncertainty','source'])
 
     @property
     def flux(self):
@@ -786,10 +790,10 @@ class ObservedSED(MCFOST_SED_Base):
         """ Uncertainty in flux in Janskys, as an astropy.Quantity"""
         return self._sed_table['uncertainty'] * (units.Jy)
 
-    def plot(self, title=None, overplot=False, 
+    def plot(self, title=None, overplot=False,
              alpha=0.75, marker='o', color='blue', linestyle='None', **kwargs):
         """ Plot the observed SED.
-    
+
         Parameters
         -----------
         overplot : bool
@@ -798,7 +802,7 @@ class ObservedSED(MCFOST_SED_Base):
             Transparency for plots
         title : string
             Title for plot.
-        
+
         Matplotlib keywords such as marker, linestyle, color, etc are also supported.
 
         """
@@ -813,7 +817,7 @@ class ObservedSED(MCFOST_SED_Base):
         nu_fnu = ( self.flux * self.frequency ).to(units.W/units.m**2)
         nu_fnu_uncert = ( self.uncertainty * self.frequency ).to(units.W/units.m**2)
 
-    
+
 
         plt.loglog(self.wavelength.value, nu_fnu.value, label=label, linestyle=linestyle, marker=marker, color=color, alpha=alpha )
         # for some reason the errorbar function hangs if fed Quantities so extract the values first:
@@ -830,7 +834,7 @@ class ObservedSED(MCFOST_SED_Base):
 
 
 class ObservedImage(object):
-    """ Container class for an observed image, 
+    """ Container class for an observed image,
     optionally along with associated uncertainty image and pixel mask.
 
     """
@@ -856,7 +860,7 @@ class ObservedImage(object):
 
 
 
-    def show(self, overplot=False, cmap=None, ax=None, 
+    def show(self, overplot=False, cmap=None, ax=None,
             vmin=None, vmax=None, which='image'):
         """
         Display one image
@@ -870,7 +874,7 @@ class ObservedImage(object):
         ax : matplotlib axis
             axis to plot into
         vmin, vmax : floats
-            min and max for image display range. 
+            min and max for image display range.
 
         """
 #        wm = np.where( (self.types == which) and (self.wavelengths == wavelength0) )
@@ -951,6 +955,10 @@ class OBSImageCollection(collections.Mapping):
 
         return self.observed_images[canonical_wavelength]
 
+
+        imagefilename = self.filenames[wm]
+        print("Filename for image: "+imagefilename)
+        raise NotImplementedError("Not implemented yet!")
 
 class ModelImage(object):
     """ Class for a model image, at a single wavelength

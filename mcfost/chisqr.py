@@ -61,7 +61,8 @@ def sed_chisqr(modelresults, observations, dof=1,
     if vary_AV:
         #_log.info("Computing chi^2 while allowing A_V to vary between {0} and {1} with R_V={2}".format(AV_range[0], AV_range[1], RV) )
         my_dof += 1
-        #import specutils
+
+        import specutils
 
     
     # observed wavelengths and fluxes 
@@ -140,10 +141,13 @@ def sed_chisqr(modelresults, observations, dof=1,
 
 
 
-def fit_dist_extinct(wavelength, observed_sed_nuFnu, model, error_observed_sed_nuFnu = None, Rv=3.1, modeldist=160.0, 
+
+def fit_dist_extinct(wavelength, observed_sed_nuFnu, model, 
+        error_observed_sed_nuFnu = None, Rv=3.1, modeldist=1.0, 
         additional_free=None, logfit=False,  
-        distance_range=[0.0,1000.0],model_noise_frac=0.00001, 
-        vary_av=True, vary_distance=True, av_range=[0.0,10.0],rv_range=[2.0,20.0],vary_rv=False, **kwargs):
+        distance_range=[0.0,1000.0],model_noise_frac=0.1, 
+        vary_av=True, vary_distance=True, av_range=[0.0,10.0],
+        rv_range=[2.0,20.0],vary_rv=False, **kwargs):
 
     """
     Adapted from the fit_dist_extinct3.pro MCRE file designed to allow 
@@ -220,8 +224,12 @@ def fit_dist_extinct(wavelength, observed_sed_nuFnu, model, error_observed_sed_n
         err_obs = np.asarray(0.1*observed_sed_nuFnu)
 
     if logfit:
-        ln_observed_sed_nuFnu = np.log(observed_sed_nuFnu)
-        ln_err_obs = err_obs/observed_sed_nuFnu
+
+        ln_observed_sed_nuFnu = observed_sed_nuFnu
+        ln_err_obs = err_obs
+        subset = observed_sed_nuFnu != 0.0  
+        ln_observed_sed_nuFnu[subset] = np.log(observed_sed_nuFnu[subset])
+        ln_err_obs[subset] = err_obs[subset]/observed_sed_nuFnu[subset]
 
     # How many degrees of freedom?
     dof = len(observed_sed_nuFnu) 
@@ -241,8 +249,9 @@ def fit_dist_extinct(wavelength, observed_sed_nuFnu, model, error_observed_sed_n
                 vout = (np.multiply(model_sed_1pc,extinction))/(a_distance[i_d])**2 
                 
                 if logfit:
-                    ln_vout = np.log(vout)
-                    chicomb = (ln_vout-ln_observed_sed_nuFnu)**2/(ln_err_obs**2 + (ln_vout*model_noise_frac)**2)
+                    ln_vout = vout
+                    ln_vout[subset] = np.log(vout[subset])
+                    chicomb = (ln_vout-ln_observed_sed_nuFnu)**2/(ln_err_obs**2 + (ln_vout*np.log(model_noise_frac))**2)
                 else:   
                     chicomb = (vout-observed_sed_nuFnu)**2/(err_obs**2 + (vout*model_noise_frac)**2)
 

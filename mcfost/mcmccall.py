@@ -1,4 +1,49 @@
-#
+
+#import numpy as np
+#import matplotlib
+#import emcee
+
+
+#def mcmccall(params,paramrange, directory, paramfile):
+    """
+    PARAMETERS
+    ----------
+    params - numpy array
+         Parameters to be used in this call
+         to emcee.
+
+         For the purposes of ESO Halpha 569,
+         these are inclination, scale height,
+         dust mass, amax, beta, alpha, and
+         rstar.
+
+    paramrange - numpy array
+         Array defining the parameter ranges
+         to be tested in the emcee call.
+
+    directory - string
+         Directory to output all of the data for the
+         MCMC calculations.
+
+    paramfile - string
+         Parameter file to begin with.
+
+    USAGE
+    -----
+    Run emcee for a given parameter file and parameter
+    ranges.
+
+    """
+
+"""
+#Below is from emcee website example
+    ndim, nwalkers = 7, 100
+    ivar = 1. / np.random.rand(ndim)
+    p0 = [np.random.rand(ndim) for i in range(nwalkers)]
+
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=[ivar])
+    sampler.run_mcmc(p0, 1000)
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -27,8 +72,13 @@ def lnprobab(theta):
     """
     PARAMETERS
     ----------
-    Theta:
-    Parameters to vary. 
+
+    Params - numpy array
+         Parameters to be used in this call
+         to emcee.
+
+         For the purposes of the  ESO Halpha 569,
+         example, these are:
          theta[0] = inclination
          theta[1] = scale_height
          theta[2] = disk_mass
@@ -36,11 +86,18 @@ def lnprobab(theta):
          theta[4] = alpha
          theta[5] = beta
          theta[6] = weights 
-         
+
+    directory - string
+         Directory to output all of the data for the
+         MCMC calculations.
+
+    paramfile - string
+         Parameter file to begin with.
+
 
     USAGE
     -----
-    Computes and returns the log of the likelihood 
+    Computes and returns the log of the likelihood
     distribution for a given model.
 
     """
@@ -101,18 +158,27 @@ def mcmcwrapper(theta):
          to emcee.
 
          For the purposes of ESO Halpha 569,
-         these are inclination, scale height, 
-         dust mass, amax, beta, alpha, and 
-         rstar. 
+         these are inclination, scale height,
+         dust mass, amax, beta, alpha, and
+         rstar.
+
+
+    directory - string
+         Directory to output all of the data for the
+         MCMC calculations.
+
+    paramfile - string
+         Parameter file to begin with.
+
 
     USAGE
     -----
     Takes a parameter file, the variable parameters
-    and a directory. Creates the model image and 
-    SED, computes the chisqr, reads in the 
-    observables, and returns the uncertainties and 
+    and a directory. Creates the model image and
+    SED, computes the chisqr, reads in the
+    observables, and returns the uncertainties and
     Chi^2 values. This is called by the function
-    that calculates the likelihood function. 
+    that calculates the likelihood function.
 
     Step 1: Get parameters for this step for emcee.
     - Right a standalone function that will take in the list of parameters to vary and write the parameter files. This is unique to each object.
@@ -179,7 +245,7 @@ def mcmcwrapper(theta):
     #STEP 5:
     return imageuncertainty, imagechi, seduncertainty.value, sedchi
 
-"""
+
 
 
 ######################################################## 
@@ -238,7 +304,7 @@ for p, lnprob, lnlike in sampler.sample(p, lnprob0=lnprob,
                                         iterations=niter, thin=10):
     pass
 
-
+"""
 diskname='esoha569'
 inclres = np.ndarray.flatten(sampler.flatchain[0,:,:,0])
 hores = np.ndarray.flatten(sampler.flatchain[0,:,:,1])
@@ -281,3 +347,4 @@ np.savetxt(filename, ChainStats)
 
 
 """
+

@@ -1,4 +1,4 @@
-2.19                      mcfost version
+2.20                      mcfost version
 
 #Number of photon packages
   1.28e5                  nbr_photons_eq_th  : T computation
@@ -6,8 +6,8 @@
   1.28e5                  nbr_photons_image  : images computation
 
 #Wavelength
-  50  0.1 3000.0          n_lambda, lambda_min, lambda_max [mum]
-  T T T 		  compute temperature?, compute sed?, use default wavelength grid ?
+  50  0.1 3000.0          n_lambda, lambda_min, lambda_max [mum] Do not change this line unless you know what you are doing
+  T T T 		  compute temperature?, compute sed?, use default wavelength grid for ouput ?
   IMLup.lambda		  wavelength file (if previous parameter is F)
   F T			  separation of different contributions?, stokes parameters?
 
@@ -18,7 +18,8 @@
 #Maps
   101 101 3000.           grid (nx,ny), size [AU]
   10   1   1              MC : N_bin_incl, N_bin_az
-  45.  90.  10  F          RT: imin, imax, n_incl, centered ?
+  45.  45.  1  F          RT: imin, imax, n_incl, centered ?
+  0    0.   1             RT: az_min, az_max, n_az angles
   140.0			  distance (pc)
   0.			  disk PA
 
@@ -32,7 +33,7 @@
   T	                  axial symmetry (important only if N_phi > 1)
 
 #Disk physics
-  3     0.50  1.0	  dust_settling (0=no settling, 1=parametric, 2=Dubrulle, 3=Fromang), exp_strat, a_strat (for parametric settling)
+  0     0.50  1.0	  dust_settling (0=no settling, 1=parametric, 2=Dubrulle, 3=Fromang), exp_strat, a_strat (for parametric settling)
   F                       dust radial migration
   F		  	  sublimate dust
   F                       hydostatic equilibrium
@@ -59,7 +60,7 @@
   Mie  1 2  0.0  1.0  0.9 Grain type (Mie or DHS), N_components, mixing rule (1 = EMT or 2 = coating),  porosity, mass fraction, Vmax (for DHS)
   Draine_Si_sUV.dat  1.0  Optical indices file, volume fraction
   1	                  Heating method : 1 = RE + LTE, 2 = RE + NLTE, 3 = NRE
-  0.03  1000.0 3.5 100 	  amin, amax [mum], aexp, n_grains (log distribution)
+  0.03  2000.0 3.5 100 	  amin, amax [mum], aexp, n_grains (log distribution)
 
 #Molecular RT settings
   T T T 15.	          lpop, laccurate_pop, LTE, profile width (km.s^-1)
@@ -76,8 +77,3 @@
   4000.0	2.0	1.0	0.0	0.0	0.0  T Temp, radius (solar radius),M (solar mass),x,y,z (AU), is a blackbody?
   lte4000-3.5.NextGen.fits.gz
   0.1	2.2  fUV, slope_fUV
- 
-Executed command line : mcfost ref2.19.para -dust_prop
-Mon Jan 13 20:42:18 EST 2014
-Darwin moya 12.5.0 Darwin Kernel Version 12.5.0: Sun Sep 29 13:33:47 PDT 2013; root:xnu-2050.48.12~1/RELEASE_X86_64 x86_64 i386 MacBookPro10,1 Darwin
-sha = 60d7692703ac05154cb919e68cb6c05a05de19e7
