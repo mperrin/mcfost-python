@@ -12,7 +12,7 @@ import logging
 _log = logging.getLogger('mcfost')
 
 def sed_chisqr(modelresults, observations, dof=1,
-        write=True,
+    write=True, 
     plot=False, save=True,
     vary_distance=False, distance_range=None,
     vary_AV=False, AV_range=[0,10],
@@ -262,7 +262,8 @@ def fit_dist_extinct(wavelength, observed_sed_nuFnu, model, error_observed_sed_n
 
 
 def image_chisqr(modelresults, observations, wavelength=None, write=True,
-        normalization='total', registration='sub_pixel'):
+        normalization='total', registration='sub_pixel', 
+        inclinationflag=True, convolvepsf=True):
     """
     Not written yet - this is just a placeholder
 
@@ -276,13 +277,17 @@ def image_chisqr(modelresults, observations, wavelength=None, write=True,
 
     """
 
-    mod_inclinations = modelresults.parameters.inclinations
+    if inclinationflag:
+        mod_inclinations = modelresults.parameters.inclinations
+    else:
+        mod_inclination = ['0.0']
 
     im = observations.images
     mask = im[wavelength].mask
     image = im[wavelength].image
     noise = im[wavelength].uncertainty
-    psf = im[wavelength].psf
+    if convolvepsf:
+        psf = im[wavelength].psf
     model = modelresults.images[wavelength].data
     
 
@@ -291,10 +296,14 @@ def image_chisqr(modelresults, observations, wavelength=None, write=True,
     chisqr = np.zeros(sz)
 
     for n in np.arange(sz):
-        model_n = np.asarray(model[0,0,n,:,:])
+        if inclinationflag:
+            model_n = np.asarray(model[0,0,n,:,:])
+        else:
+            model_n = np.asarray(model)
 
         # Convolve the model image with the appropriate psf
-        model_n = np.asarray(image_registration.fft_tools.convolve_nd.convolvend(model_n,psf))
+        if convolvepsf:
+            model_n = np.asarray(image_registration.fft_tools.convolve_nd.convolvend(model_n,psf))
         # Determine the shift between model image and observations via fft cross correlation
     
         # Normalize model to observed image and calculate chisqrd

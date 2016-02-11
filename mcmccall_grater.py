@@ -33,7 +33,8 @@ model_code = 'grater'
 belts = 1
 maindirectory = '/astro/4/mperrin/eods/Grater_EMCEE/'
 parameters = ['g','radius','inn_slope','out_slope','inclination','xoffset','yoffset','pa','flux']
-
+ndim = 9
+imwavelength = 0.002
 
 # Define the log likelihood 
 def lnprobab(theta):
@@ -159,7 +160,7 @@ def lnprior(theta):
 
     if (fluxb < 1.0e-8 or fluxb > 1.0e-6):
         return -np.inf
- 1.10-8 and  1.10-6.
+ 
 
 """
 
@@ -199,13 +200,15 @@ def mcmcwrapper(theta):
     # STEP 2:
     olddir=os.path.abspath(os.curdir)
     maindir = maindirectory
-    #par = Paramfile(maindir+'esoha569.para')
-    par = Paramfile(maindir+'data/esoha569.para')
+ 
     # Do I need to write these, or just do this in memory?
     # write the parameter file in the default directory
-    fnstring = "{0:0.4g}".format(theta[0])+'_'+"{0:0.4g}".format(theta[1])+'_'+"{0:0.4g}".format(theta[2])+'_'+"{0:0.4g}".format(theta[3])+'_'+"{0:0.4g}".format(theta[4])+'_'+"{0:0.4g}".format(theta[5])+'_'+"{0:0.4g}".format(theta[6])+'_'+"{0:0.4g}".format(theta[7]+'_'+"{0:0.4g}".format(theta[8]
-    par.writeto(fnstring+'.para')
+    fnstring = "{0:0.4g}".format(theta[0])
+    for i in np.arange(ndim-1):
+        fnstring += '_'+"{0:0.4g}".format(theta[i+1])
     modeldir = olddir+'/'+fnstring
+    
+
     try:
         os.mkdir(modeldir)
     except:
@@ -217,15 +220,28 @@ def mcmcwrapper(theta):
     subprocess.call('mv '+fnstring+'.para '+modeldir,shell=True)
     os.chdir(modeldir)
 
+    # Now write the parameter file from the theta values.
+    f = open(fnstring+'.para','w')
+    f.write(str(1)+"\n")
+    for i in np.arange(ndim):
+       f.write(str(theta[i])+"\n")
+    f.close() 
+
+    os.mkdir('data_0.002')
+
     #modeldir 3:
     # run grater in the given directory
-    subprocess.call('mcfost '+fnstring+'.para -rt >> sedmcfostout.txt',shell=True)
+    script_file_name = 'grater_mcmc, '+olddir+', '+modeldir
+    subp = subprocess.Popen("idl -quiet -e" + script_file_name + "'",
+            stderr = subprocess.PIPE, stdout = subprocess.PIPE, shell = True)
+
+    (idl_stdout, _) = subp.communicate()
 
     #STEP 4: 
     try:
         model = ModelResults(maindir+fnstring)
     except IOError:
-        print 'Model Failed'
+        #raise IOError('Model Failed')
         os.chdir(olddir)
         return np.asarray([1000000.0,1000000.0]), 1000000.0
         
@@ -235,7 +251,7 @@ def mcmcwrapper(theta):
         #print "well, it WASN'T defined after all!"
         obs = Observations(maindir+'data')
 
-    imagechi = image_chisqr(model,obs,wavelength=0.8)
+    imagechi = image_chisqr(model,obs,wavelength=imwavelength, inclinationflag=False, convolvepsf=False)
     imagechi = imagechi[0]
     imagestring = 'Image {0}'.format(imagechi)
     
@@ -243,7 +259,7 @@ def mcmcwrapper(theta):
     f.write(imagestring)
     f.close()
     
-    imageuncertainty = obs.images[0.8].uncertainty
+    imageuncertainty = obs.images[imwavelength].uncertainty
     
 
     subprocess.call('pwd',shell=True)
@@ -261,7 +277,7 @@ def mcmcwrapper(theta):
 ######################################################## 
 
 ntemps = 1
-nwalkers = 50
+nwalkers = 10
 ndim = 9
 
 sampler=PTSampler(ntemps, nwalkers, ndim, lnprobab, lnprior)
@@ -398,26 +414,12 @@ yoffsetres = np.ndarray.flatten(sampler.chain[:,:,:,6])
 pares = np.ndarray.flatten(sampler.chain[:,:,:,7])
 fluxres = np.ndarray.flatten(sampler.chain[:,:,:,8])
 
-    filename = diskname + '_'+parameters[0]+'.txt'
-    np.savetxt(filename, gres)
-    filename = diskname + '_'+parameters[1]+'.txt'
-    np.savetxt(filename, radiusres)
-    filename = diskname + '_'+parameters[1]+'.txt'
-    np.savetxt(filename, innsloperes)
-    filename = diskname + '_'+parameters[1]+'.txt'
-    np.savetxt(filename, outsloperes)
-    filename = diskname + '_'+parameters[1]+'.txt'
-    np.savetxt(filename, inclinationres)
-    filename = diskname + '_'+parameters[1]+'.txt'
-    np.savetxt(filename, xoffsetres)
-    filename = diskname + '_'+parameters[1]+'.txt'
-    np.savetxt(filename, yoffsetres)
-    filename = diskname + '_'+parameters[1]+'.txt'
-    np.savetxt(filename, pares)
-    filename = diskname + '_'+parameters[1]+'.txt'
-    np.savetxt(filename, fluxres)
+arrays = [gres, radiusres, innsloperes, outsloperes, inclinationres, xoffsetres, yoffsetres, pares, fluxres]
 
-
+for i in arange(ndim):
+    filename = diskname + '_'+parameters[i]+'.txt'
+    np.savetxt(filename, arrays[i])
+   
 """
     ChainStats = np.zeros((7,3))
     ha = np.ndarray.flatten(sampler.chain[:,:,:,0])
