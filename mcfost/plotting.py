@@ -12,7 +12,7 @@ from . import utils
 from . import models
 
 
-def plot_seds(dir="./", 
+def plot_seds(dir="./",
         observed_sed_filename=None, **kwargs):
     """
         Plot the SEDs for the current directory.
@@ -30,7 +30,7 @@ def plot_seds(dir="./",
         several plausible filenames + paths.
     inclination : string 'all' or float
         'all' to plot all inclinations, else just the
-        desired inclination (specifically the SED whose 
+        desired inclination (specifically the SED whose
         inclination is closest to the specified floating point value)
 
     """
@@ -38,7 +38,7 @@ def plot_seds(dir="./",
     mr = models.ModelResults(dir)
     mr.sed.plot( **kwargs)
 
-	#    if parfile is None:
+
 
 def plot_lir_lstar(parfilename=None,dir="./", inclination=0):
     """ Estimate L_IR/L_star for a model.
@@ -63,7 +63,7 @@ def plot_lir_lstar(parfilename=None,dir="./", inclination=0):
     lambd = par.wavelengths
     phi=1
 
-    try: 
+    try:
         flux_nufnu = sed[6,phi-1,inclination,:]   #  see if the file has components separated
     except:
         raise IOError("The supplied MCFOST SED model was not computed with separate components. Please recompute to enable distinguishing between star and disk flux.")
@@ -76,7 +76,7 @@ def plot_lir_lstar(parfilename=None,dir="./", inclination=0):
         plt.loglog(lambd, flux_nufnu, label="channel %d" % i, linestyle=ls)
     plt.legend()
 
-    # channels appear to be: 
+    # channels appear to be:
     # 0 total
     # 1 ??
     # 2 ??
@@ -99,13 +99,13 @@ def plot_lir_lstar(parfilename=None,dir="./", inclination=0):
     ldisk = integrate_channel(6) +  integrate_channel(5)
 
 
-    print "Integrated disk + star flux is %.2e W m^-2" % ltot
-    print "Integrated star flux is %.2e W m^-2" % lstar
-    print "Integrated disk flux is %.2e W m^-2" % ldisk
+    print("Integrated disk + star flux is %.2e W m^-2" % ltot)
+    print("Integrated star flux is %.2e W m^-2" % lstar)
+    print("Integrated disk flux is %.2e W m^-2" % ldisk)
 
-    print ""
+    print("")
     #print "L_IR / L_star  =  %.2e "   % (ldisk/lstar)
-    print "L_IR / L_star  =  %.2e "   % ((ltot-lstar)/lstar)
+    print("L_IR / L_star  =  %.2e "   % ((ltot-lstar)/lstar))
 
 
 
@@ -133,9 +133,9 @@ def plot_images(parfilename=None,dir="./", overplot=False, psf_fwhm=None, **kwar
         plot_image(w, par=par, dir=dir, **kwargs)
 
 
-def plot_image(wavelength, parfilename=None,par=None, dir="./", overplot=False, inclination=80, cmap=None, ax=None, 
+def plot_image(wavelength, parfilename=None,par=None, dir="./", overplot=False, inclination=80, cmap=None, ax=None,
         polarization=False, polfrac=False,
-        psf_fwhm=None, 
+        psf_fwhm=None,
         vmin=None, vmax=None, dynamic_range=1e6):
     """ Show one image from an MCFOST model
 
@@ -156,7 +156,7 @@ def plot_image(wavelength, parfilename=None,par=None, dir="./", overplot=False, 
         Min and max values for image display. Always shows in log stretch
     dynamic_range : float
         default vmin is vmax/dynamic range. Default dynamic range is 1e6.
-    psf_fwhm : float or None 
+    psf_fwhm : float or None
         convolve with PSF of this FWHM? Default is None for no convolution
     parfilename : string, optional
     par : dict, optional
@@ -333,7 +333,7 @@ def plot_dust(directory='./', noerase=False, parameters=None):
 
     ax = plt.subplot(122)
     # move this 4th plot down slightly for visual offset
-    pos = ax.get_position()  
+    pos = ax.get_position()
     pa = pos.get_points()
     pa[0,1] *= 0.5
     pos.set_points(pa)
@@ -354,5 +354,3 @@ def plot_dust(directory='./', noerase=False, parameters=None):
         plt.legend(prop=prop)
     else:
         plt.text(90,0.5, 'Polarization information\n not enabled', horizontalalignment='center', verticalalignment='center')
-
-

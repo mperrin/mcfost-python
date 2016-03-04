@@ -1,4 +1,4 @@
-# Various utility functions 
+# Various utility functions
 import matplotlib
 import numpy as np
 import logging
@@ -63,10 +63,10 @@ def setup_logging(level='INFO',  filename=None, verbose=False):
         lev = logging.CRITICAL  # we don't generate any CRITICAL flagged log items, so
                                 # setting the level to this is effectively the same as ignoring
                                 # all log events. FIXME there's likely a cleaner way to do this.
-        if verbose: print "No log messages will be shown."
+        if verbose: print("No log messages will be shown.")
     else:
         lev = logging.__dict__[level.upper()] # obtain one of the DEBUG, INFO, WARN, or ERROR constants
-        if verbose: print "Log messages of level {0} and above will be shown.".format(level)
+        if verbose: print("Log messages of level {0} and above will be shown.".format(level))
 
     for name in lognames:
         logging.getLogger(name).setLevel(lev)
@@ -96,10 +96,10 @@ def find_closest(list_, item):
 
 def ccm_extinction(Rv, lambda_ang):
 
-    """ 
+    """
     Python implementation of the idl_lib extinction correction function
     to be called by the SED chisqrd fitting method in the python version of
-    MCRE. Accepts Rv, the reddening index at V (Default = 3.1) and the 
+    MCRE. Accepts Rv, the reddening index at V (Default = 3.1) and the
     wavelength in Angstroms. Extinction curve A(lambda)/A(V) is returned.
     """
     lambda_ang = np.asarray(lambda_ang)
@@ -114,7 +114,7 @@ def ccm_extinction(Rv, lambda_ang):
     #print 'ir',ir
     c_ir = len(ir)
     #flags = choose(greater(inv_lam,1.1),(-1,1))
-    
+
     a[ir] = 0.574*inv_lam[ir]**1.61
     b[ir] = -0.527*inv_lam[ir]**1.61
 
@@ -135,14 +135,11 @@ def ccm_extinction(Rv, lambda_ang):
     nulls = xm <= 0
     fa[nulls] = 0.0
     fb[nulls] = 0.0
-            
+
     a[uv] = 1.752 - 0.316*x - 0.104/( (x-4.67)**2 +0.341) + fa
     b[uv] = -3.090 + 1.825*x + 1.206/( (x-4.62)**2 + 0.263) + fb
 
     # Compute the extintion at each wavelength and return
     A_lambda = np.asarray((a+b)/Rv)
-    
+
     return A_lambda
-
-
-
