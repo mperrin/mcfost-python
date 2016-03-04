@@ -307,11 +307,10 @@ class Paramfile(object):
                 set1partOfDict(density, 'gamma_exp', lineptr, 2, float)
             else:
                 density['gamma_exp'] = 0.0
-            lineptr+=3
+            lineptr+=2
 
             self.density_zones.append(density)
-            
-            lineptr-=3
+        lineptr+=1
         #-- Cavity --
         set1part('cavity_flag', lineptr, 1, str) ; lineptr+=1
         set1part('cavity_height', lineptr, 1, float)
@@ -340,13 +339,17 @@ class Paramfile(object):
                     set1partOfDict(dust, 'mass_fraction',lineptr, 5 if self.version >=2.17 else 4, float)
                     lineptr+=1
                     #if dust['ncomponents'] >1: raise NotImplementedError("Need multi-component parsing code!")
+                    components=[]
                     for icomponent in range(dust['ncomponents']):
+                        this_component={}
                         dust_keys = (('filename', lineptr, 1, str),
                             ('volume_fraction', lineptr, 2, float))
                         for key, line, item, typ in dust_keys:
-                            set1partOfDict(dust,key, line, item, typ)
-
+                            set1partOfDict(this_component,key, line, item, typ)
+                        components.append(this_component)
                         lineptr+=1
+                    dust['components']=components
+                        
                     # now the heating and grain size properties
                     dust_keys = ( ('heating', lineptr+0, 1, int),
                             ('amin', lineptr+1, 1, float),
@@ -355,7 +358,8 @@ class Paramfile(object):
                             ('ngrains', lineptr+1, 4, int))
                     for key, line, item, typ in dust_keys:
                         set1partOfDict(dust,key, line, item, typ)
-                    lineptr+=2
+                    lineptr+=3
+                    
 
                 else:
                     # earlier versions than 2.12, so only one component allowed.
@@ -377,7 +381,7 @@ class Paramfile(object):
                     if defkey not in dust.keys() : dust[defkey] = defval
 
                 self.density_zones[idensity]['dust'].append(dust)
-        lineptr+=2
+        lineptr+=1
 
         # molecular RT settings
         set1part('l_pop', lineptr, 1, bool)
@@ -579,19 +583,20 @@ class Paramfile(object):
           str_viscous_heating=bstr(self.l_viscous_heating),
           )
 
-        if self.nzones > 1:
-            raise NotImplemented("write par file code does not yet support multiple zones!")
+        # if self.nzones > 1:
+        #     raise NotImplementedError("write par file code does not yet support multiple zones!")
 
-        getsubkeys = lambda k, l: tuple([par[k][li] for li in l])
-        template+="""
-#Density structure
+        #getsubkeys = lambda k, l: tuple([par[k][li] for li in l])
+        template += "\n#Density structure"
+        for zone in range(self.nzones): 
+            template+="""
   {zone[zone_type]:1d}                       zone type : 1 = disk, 2 = tapered-edge disk, 3 = envelope, 4 = debris disk, 5 = wall
   {zone[dust_mass]:<10.2e} {zone[gas_to_dust_ratio]:<5.1f}        dust mass,  gas-to-dust mass ratio
   {zone[scale_height]:<5.1f}  {zone[reference_radius]:<6.1f} {zone[debris_disk_vertical_profile_exponent]:<6.1f}          scale height, reference radius (AU), unused for envelope, vertical profile exponent (only for debris disk)
   {zone[r_in]:<6.1f}  {zone[edge]:<6.1f} {zone[r_out]:<6.1f} {zone[r_critical]:<6.1f}  Rin, edge, Rout, Rc (AU) Rc is only used for tappered-edge & debris disks (Rout set to 8*Rc if Rout==0)
   {zone[flaring_exp]:<8.3f}                  flaring exponent, unused for envelope
   {zone[surface_density_exp]:<6.3f} {zone[gamma_exp]:<6.3f}                surface density exponent (or -gamma for tappered-edge disk or volume density for envelope), usually < 0, -gamma_exp (or alpha_in & alpha_out for debris disk)
-        """.format(zone = self.density_zones[0])
+        """.format(zone = self.density_zones[zone])
 
         template+="""
 #Cavity : everything is empty above the surface
@@ -602,15 +607,21 @@ class Paramfile(object):
 
         if len(self.density_zones[0]['dust']) > 1: raise NotImplemented("No support for multi dust types yet")
         template+="""
-#Grain properties
-  {zone[dust_nspecies]:<2d}                      Number of species""".format(zone=self.density_zones[0])
+#Grain properties"""
+ 
 
-        template+="""
+        for zone in range(self.nzones): 
+            template+="""
+  {zone[dust_nspecies]:<2d}                      Number of species""".format(zone=self.density_zones[zone])
+            template+="""
   Mie {dust[ncomponents]:<2d} {dust[mixing_rule]:<1d} {dust[porosity]:<5.2f} {dust[mass_fraction]:<5.2f} 0.9     Grain type (Mie or DHS), N_components, mixing rule (1 = EMT or 2 = coating),  porosity, mass fraction, Vmax (for DHS)
-  {dust[filename]:s}  {dust[volume_fraction]:<4.1f}   Optical indices file, volume fraction
-  {dust[heating]:<2d}                      Heating method : 1 = RE + LTE, 2 = RE + NLTE, 3 = NRE
-  {dust[amin]:<6.3f} {dust[amax]:6.1f}  {dust[aexp]:4.1f} {dust[ngrains]:3d}   amin, amax, aexp, nbr_grains
-      """.format(dust = self.density_zones[0]['dust'][0])
+  """.format(dust = self.density_zones[zone]['dust'][0])
+            for component in self.density_zones[zone]['dust'][0]['components']:
+                template+="""{component[filename]:s}  {component[volume_fraction]:<4.1f}   Optical indices file, volume fraction
+  """.format(component=component)
+            template+="""{dust[heating]:<2d}                      Heating method : 1 = RE + LTE, 2 = RE + NLTE, 3 = NRE
+  {dust[amin]:<6.3f} {dust[amax]:6.1f}  {dust[aexp]:4.3f} {dust[ngrains]:3d}   amin, amax, aexp, nbr_grains
+      """.format(dust = self.density_zones[zone]['dust'][0])
 
         template+="""
 #Molecular RT settings
