@@ -240,7 +240,7 @@ def fit_dist_extinct(wavelength, observed_sed_nuFnu, model,
     for i_r in np.arange(len(a_rv)):
         ext = np.asarray(utils.ccm_extinction(a_rv[i_r],wave_mu)) # Use wavelength in Angstroms
         #print 'ext',wave_ang,ext
-        ext[:]=0
+        #ext[:]=0
         for i_d in np.arange(len(a_distance)):
             
             for i_a in np.arange(len(a_av)):
