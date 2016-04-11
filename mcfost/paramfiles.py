@@ -683,7 +683,7 @@ class Paramfile(object):
         IDL MCRE re_translationtable.txt configuration file.
 
         """
-
+        
         if paramname == 'm_star':
             self.star['mass'] = value
         elif paramname == 't_star':
@@ -704,6 +704,8 @@ class Paramfile(object):
             self.density_zones[0]['flaring_exp'] = value
         elif paramname == 'surface_density':
             self.density_zones[0]['surface_density_exp'] = value
+        elif paramname == 'gamma_exp':
+            self.density_zones[0]['gamma_exp']=value
         elif paramname == 'scaleheight' or paramname == 'scale_height':
             self.density_zones[0]['scale_height'] = value
         elif paramname == 'zone_type':

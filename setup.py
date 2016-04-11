@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
 
+
 setup(
     name = 'mcfost',
     fullname = 'MCFOST Python Tools',
@@ -9,7 +10,7 @@ setup(
     Python tools for working with MCFOST radiative transfer models.
     """,
 
-    author = "Christophe Pinte & Marshall Perrin",
+    author = "Christophe Pinte, Marshall Perrin & Schuyler Wolff",
     author_email = "",
     url = "https://github.com/cpinte/mcfost-python",
 

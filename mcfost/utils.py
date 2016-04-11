@@ -101,10 +101,13 @@ def ccm_extinction(Rv, lambda_ang):
     to be called by the SED chisqrd fitting method in the python version of
     MCRE. Accepts Rv, the reddening index at V (Default = 3.1) and the
     wavelength in Angstroms. Extinction curve A(lambda)/A(V) is returned.
+    NOTE: lambda_ang is the wavelength in microns
     """
-    lambda_ang = np.asarray(lambda_ang)
+    
+    #lambda_ang = np.asarray(lambda_ang)
+    #lambda_ang = lambda_ang*0.0001 
     inv_lam = 1.0/lambda_ang
-    #print 'inv_lam',inv_lam
+    
     s = len(lambda_ang)
     a = np.zeros((s))
     b = np.zeros((s)) # confirm proper syntax
@@ -140,6 +143,7 @@ def ccm_extinction(Rv, lambda_ang):
     b[uv] = -3.090 + 1.825*x + 1.206/( (x-4.62)**2 + 0.263) + fb
 
     # Compute the extintion at each wavelength and return
+
     A_lambda = np.asarray((a+b)/Rv)
 
     return A_lambda

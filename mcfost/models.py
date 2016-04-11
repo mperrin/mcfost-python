@@ -20,7 +20,9 @@ from . import utils
 
 
 class ModelImageCollection(collections.Mapping):
-    """ Helper collectin class to implement on-demand loading of
+
+    """ 
+    Helper collection class to implement on-demand loading of
     image data via a dict interface. The dict looks like it
     always contains all available images, and can be indexed via
     either floats or strings interchangably.
@@ -49,6 +51,7 @@ class ModelImageCollection(collections.Mapping):
 
     @property
     def wavelengths(self):
+
         return np.asarray(list(self._modelresults._wavelengths_lookup.values()), dtype=float) * units.micron
         #return self._modelresults.image_wavelengths
 
@@ -63,6 +66,15 @@ class ModelImageCollection(collections.Mapping):
         return self._modelresults._wavelengths_lookup.values()
         #return list(self._modelresults.image_wavelengths.value)
 
+    def closeimage(self):
+        for k in self.keys():
+            canonical_wavelength = self._modelresults._standardize_wavelength(k)
+            try:
+                self.loaded_fits[canonical_wavelength].close()
+            except:
+                print "Failed to close model image files."
+
+
     def __len__(self):
         return len(self.keys())
 
@@ -75,6 +87,7 @@ class ModelImageCollection(collections.Mapping):
 
         if canonical_wavelength not in self._loaded_fits.keys():
             self._loaded_fits[canonical_wavelength] = fits.open( self._getpath(canonical_wavelength))[0]
+        
         return self._loaded_fits[canonical_wavelength]
 
 
@@ -164,6 +177,7 @@ class ModelResults(MCFOST_Dataset):
 
         self.images = ModelImageCollection(self)
 
+
         # Check for SED
         try:
             self.sed = ModelSED(directory=os.path.join(self.directory, 'data_th') )
@@ -198,10 +212,12 @@ class ModelResults(MCFOST_Dataset):
 
         raise DeprecationWarning("ModelResults.plot_sed is deprecated; use Modelresults.sed.plot() instead.")
 
+
         self.sed.plot(inclination=inclination, title=title, overplot=overplot,
                 nlabels=nlabels, alpha=alpha, **kwargs)
 
         return
+
 
     def plot_image(self, wavelength0, overplot=False, inclination=None, cmap=None, ax=None,
             axes_units='AU',
@@ -234,7 +250,6 @@ class ModelResults(MCFOST_Dataset):
             convolve with PSF of this FWHM? Default is None for no convolution
         colorbar : bool
             Also draw a colorbar
-
 
 
         To Do:
@@ -499,7 +514,9 @@ class Observations(MCFOST_Dataset):
         if not os.path.exists(summaryfile):
             raise ValueError("Cannot find index file of observed data: summary.txt")
 
-        summary = open(summaryfile).readlines()
+        summaryf = open(summaryfile)
+        summary = summaryf.readlines()
+        #summary = open(summaryfile).readlines()
 
         filenames = []
         types = []
@@ -519,6 +536,9 @@ class Observations(MCFOST_Dataset):
         self.file_names = np.asarray(filenames)
         self.file_types = np.asarray(types)
         self.file_wavelengths = np.asarray(wavelengths)
+
+        self.images = OBSImageCollection(self)
+        summaryf.close()
 
     def __repr__(self):
         return "<MCFOST Observations in directory '{self.directory}'>".format(self=self)
@@ -714,12 +734,14 @@ class ModelSED(MCFOST_SED_Base):
                 mycolor = tuple( c_imin*(1-relative_pos) + c_imax*relative_pos)
                 label = '$i={inc:.1f}^\circ$'.format(inc=self.inclinations[i]) if np.mod(i,label_multiple) == 0 else None
 
+
                 plt.loglog(self.wavelength.to(units.micron).value, self.nu_fnu[i].to(units.W/units.m**2).value,
                         label=label, linestyle=linestyle, marker=marker, color=mycolor, alpha=alpha )
         else:
             # Plot one inclination
             iclosest = np.abs(self.inclinations - float(inclination)).argmin()
             label = '$i={inc:.1f}^\circ$'.format(inc=self.inclinations[iclosest])
+
             plt.loglog(self.wavelength.to(units.micron).value, self.nu_fnu[iclosest].to(units.W/units.m**2).value,
                 label=label, linestyle=linestyle, marker=marker, color=color, alpha=alpha )
 
@@ -745,8 +767,9 @@ class ObservedSED(MCFOST_SED_Base):
         self._sed_type = 'Observed'
 
         # temporary hard coded default for development
+
         if filename is None:
-            filename = '/Users/mperrin/data/mcfost/models_esoha569/data/observed_sed.txt'
+            filename = './data/observed_sed.txt'
         self.filename = filename
 
         self._sed_table = ascii.read(filename, format=format,
@@ -815,12 +838,22 @@ class ObservedImage(object):
     optionally along with associated uncertainty image and pixel mask.
 
     """
-    def __init__(self, filename, uncertainty=None, mask=None, wavelength=None, psf=None):
+    def __init__(self, filename, uncertaintyfn=None, maskfn=None, wavelength=None, psffn=None):
         self.filename = filename
-        self.uncertainty_filename = uncertainty
-        self.mask_filename = mask
+        self.uncertainty_filename = uncertaintyfn
+        self.mask_filename = maskfn
         self.wavelength = wavelength
-        self.psf = psf
+        self.psf_filename = psffn
+
+
+#Make this more robust by assigning appropriate versions of each below when None
+        self.image = fits.getdata(self.filename)
+        if uncertaintyfn != None:
+            self.uncertainty = fits.getdata(self.uncertainty_filename)
+        self.mask = fits.getdata(self.mask_filename)
+        self.psf = fits.getdata(self.psf_filename)
+
+    
 
     def __repr__(self):
         return "<Observed image at {0} microns>".format(self.wavelength)
@@ -844,7 +877,84 @@ class ObservedImage(object):
             min and max for image display range.
 
         """
-        wm = np.where( (self.types == which) and (self.wavelengths == wavelength0) )
+#        wm = np.where( (self.types == which) and (self.wavelengths == wavelength0) )
+
+ #       imagefilename = self.filenames[wm]
+ #       print "Filename for image: "+imagefilename
+ #       raise NotImplementedError("Not implemented yet!")
+
+class OBSImageCollection(collections.Mapping):
+    """ Helper collectin class to implement on-demand loading of 
+    image data via a dict interface. The dict looks like it
+    always contains all available images, and can be indexed via
+    either floats or strings interchangably. 
+
+    This returns a PrimaryHDU object, not a HDUlist, under the
+    assumption that MCFOST output files don't ever have more than one 
+    extension.
+
+    Most users will not need to instantiate this directly. Just
+    use it transparently via a ModelResults object
+
+    Example
+    ---------
+    mod = mcfostpy.ModelResults()
+    im_1_micron = mod.image_data[1.0]  # looks like array access, but is 
+                    # actually an automatic file read first, then access
+
+    """
+    def __init__(self, observations):
+        #self._observations = observations
+        #self._loaded_fits = dict()
+
+        self.observed_images = dict()
+        
+        for n in observations.image_wavelengths:
+            ind = np.where(observations.file_wavelengths == n)  
+            file_types = observations.file_types[ind]
+            filenames = observations.file_names[ind]
+            for i in np.arange(len(ind[0])):
+                if file_types[i].lower() == 'psf':
+                    psffn = filenames[i]
+                elif file_types[i].lower() == 'mask':
+                    maskfn = filenames[i]
+                elif file_types[i].lower() == 'image':
+                    filename = filenames[i]
+                elif file_types[i].upper() == 'IMAGE_UNCERT':
+                    uncertfn = filenames[i]
+
+            self.observed_images[float(n)]=ObservedImage(filename, uncertaintyfn=uncertfn, maskfn=maskfn, wavelength=n, psffn=psffn)
+
+
+
+    @property
+    def wavelengths(self):
+        return np.asarray(self.observations.image_wavelengths, dtype=float) * units.micron
+        #return self._modelresults.image_wavelengths
+
+    @property   
+    def filenames(self):
+        return [self._getpath(k) for k in self.keys()]
+
+    # Implement magic methods to make this compliant with the collections.Mapping abstract base class
+    # that way it will behave just like a python Dict
+    def keys(self):
+        # cast these as a list
+        return observations.image_wavelengths
+        #return list(self._modelresults.image_wavelengths.value)
+
+    def __len__(self):
+        return len(self.keys())
+
+    def __iter__(self):
+        for i in self.keys():
+            yield self[i]
+
+    def __getitem__(self, key):
+        canonical_wavelength = float(key)
+
+        return self.observed_images[canonical_wavelength]
+
 
         imagefilename = self.filenames[wm]
         print("Filename for image: "+imagefilename)

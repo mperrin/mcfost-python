@@ -54,10 +54,40 @@ model results and observations are similar:
   >>> obs.sed.plot()
 
 
-There are included functions for calculating :math:`\chi^2` values for model fitting, currently supporting SEDs only. Image fitting is a work in progress. 
-The long term goal is to provide an interface for MCMC model fitting via `emcee <http://dan.iel.fm/emcee/current>`_.  
- 
+To compare observed SED's and images with the MCFOST model outputs, 
+there are included functions for calculating :math:`\chi^2` values.
+See :ref:`chisqr` for details. Once you're read in the observations 
+and model data into the structures defined above, compute :math:`\chi^2` 
+values:
 
+.. code-block:: python
 
+  >>> imagechi = image_chisqr(model,obs,wavelength=0.8)
+  >>> sedchi = sed_chisqr(model, obs)
 
+The larger goal is to provide an interface for MCMC model fitting 
+via `emcee <http://dan.iel.fm/emcee/current>`_.  
+An example of this is provided in mcmccall.py. In addition to the MCMC 
+framework described in detail at `emcee <http://dan.iel.fm/emcee/current>`_, 
+this includes three functions to calculate the likelihood and prior 
+distributions for each combination of model parameters. 
 
+``lnprior`` defines the prior distribution used for each parameter. This is 
+left up to the user. In the example provided, we use constrain the acceptable 
+parameter value ranges using step functions.
+
+``lnprobab`` calculates the likelihood of the model given the data using the 
+model uncertainties and the calculated :math:`\chi^2` values. It is left up 
+to the user how to combine likelihoods for images at different wavelengths, 
+SEDs, and spectra. In this example, we have left the weighting between the 
+image and SED as a free parameter in the MCMC fit. This function obtains the 
+uncertainties and :math:`\chi^2` values from the third and final function. 
+
+``mcmcwrapper`` is responsible for returning the uncertainties and 
+:math:`\chi^2` values given a set of model parameter values to be used for 
+the likelihood calculation. The required inputs to this function are a 
+parameter file, the parameter values for a step in the MCMC chain, and a 
+directory. It then creates the model image and SED, reads in the observables, 
+and returns the uncertainties :math:`\chi^2` values. The ``mcmcwrapper`` 
+function employs all of the tools for interacting with the observations, model 
+data, parameter files, and MCFOST. 

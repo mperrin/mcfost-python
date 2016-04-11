@@ -59,6 +59,9 @@ def run_one_file(filename, wavelengths=[], move_to_subdir=True, delete_previous=
     if move_to_subdir:
         _log.info("Relocating {0} to a subdirectory of the same name.".format(os.path.basename(filename)))
         modelname = os.path.splitext(os.path.basename(filename))[0]
+        modeldir = os.path.splitext(os.path.dirname(filename))[0]
+        #os.chdir(modeldir)
+        #_log.info( "model directory"+modeldir)
         os.mkdir(modelname)
         subprocess.call('chmod -R g+w '+modelname,shell=True)
         subprocess.call('mv '+filename+' '+modelname,shell=True)

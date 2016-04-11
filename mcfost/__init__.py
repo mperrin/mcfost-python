@@ -12,6 +12,7 @@ from .plotting import (plot_seds, plot_lir_lstar, plot_images, plot_image, plot_
 
 from .run import (grid_generator, run_all_files, run_one_file, run_sed, run_image)
 
+#from mcmccall import (mcmcwrapper,lnprobab,lnprior)
 
 from .utils import (setup_logging, ccm_extinction)
 setup_logging()
