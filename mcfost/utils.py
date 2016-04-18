@@ -104,7 +104,7 @@ def ccm_extinction(Rv, lambda_ang):
     NOTE: lambda_ang is the wavelength in microns
     """
     
-    #lambda_ang = np.asarray(lambda_ang)
+    lambda_ang = np.asarray(lambda_ang)
     #lambda_ang = lambda_ang*0.0001 
     inv_lam = 1.0/lambda_ang
     
