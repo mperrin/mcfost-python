@@ -335,7 +335,7 @@ class ModelResults(MCFOST_Dataset):
             ax = plt.subplot(121)
 
         # Display the image!
-        ax = utils.imshow_with_mouseover(ax, image,  norm=norm, cmap=cmap, extent=extent)
+        ax = utils.imshow_with_mouseover(ax, image,  norm=norm, cmap=cmap, extent=extent, origin='lower')
         ax.set_xlabel("Offset [{unit}]".format(unit=axes_units))
         ax.set_ylabel("Offset [{unit}]".format(unit=axes_units))
         ax.set_title("Image for "+wavelength+" $\mu$m")
