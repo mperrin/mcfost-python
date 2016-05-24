@@ -2,6 +2,7 @@ import os
 import subprocess
 import logging
 _log = logging.getLogger('mcfost')
+import numpy as np
 
 
 import astropy
@@ -70,6 +71,10 @@ def run_one_file(filename, wavelengths=[], move_to_subdir=True, delete_previous=
 
 
     run_sed(filename, delete_previous=delete_previous)
+    
+    if np.asarray(wavelengths).shape == ():
+        #when only one wavelength is given
+        wavelengths = [wavelengths]
 
     for wl in wavelengths:
         run_image(filename, wl, delete_previous=delete_previous)
