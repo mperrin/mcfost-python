@@ -303,14 +303,25 @@ def plot_dust(directory='./', noerase=False, parameters=None):
     if os.path.exists(os.path.join(directory, "polar.fits.gz")):
         has_polar= True
         polar = fits.getdata(os.path.join(directory, "polar.fits.gz"))
+    elif os.path.exists(os.path.join(directory, "polarizability.fits.gz")):
+        has_polar= True
+        polar = fits.getdata(os.path.join(directory, "polarizability.fits.gz"))
     else:
         has_polar = False
+
+    if os.path.exists(os.path.join(directory, "phase_function.fits.gz")):
+        has_phase= True
+        phase = fits.getdata(os.path.join(directory, "phase_function.fits.gz"))
+    else:
+        has_phase = False
+
+
 
     if noerase is False:  plt.clf()
     plt.subplots_adjust(top=0.98, hspace=0.3, wspace=0.4)
     ax = plt.subplot(321)
     plt.semilogx(lambd, kappa)
-    plt.ylabel("Opacity $\kappa$")
+    plt.ylabel("Opacity $\kappa$ [cm$^2$/g]")
     ax.yaxis.set_major_locator( matplotlib.ticker.MaxNLocator(5) )
 
     #----
@@ -328,29 +339,51 @@ def plot_dust(directory='./', noerase=False, parameters=None):
     ax.yaxis.set_major_locator( matplotlib.ticker.MaxNLocator(5) )
     #ax.set_yticks([0.0, 0.25, 0.5, 0.75, 1.0])
 
+    #----- now switch to show the phase function versus angle ----
 
-    #----- now switch to show the polarization versus angle ----
-
-    ax = plt.subplot(122)
-    # move this 4th plot down slightly for visual offset
-    pos = ax.get_position()
-    pa = pos.get_points()
-    pa[0,1] *= 0.5
-    pos.set_points(pa)
-    ax.set_position(pos)
-
-    polwaves = np.asarray([1.0, 2.5, 10.0, 100.0])
+    # these variables are used for both phase function and polarization
+    pwaves = np.asarray([1.0, 2.5, 10.0, 100.0])
+    colors = ['blue', 'green', 'orange', 'red']
     theta = np.r_[0:180]
+
+
+    ax = plt.subplot(222)
     plt.xlabel("Scattering Angle [degrees]")
-    plt.ylabel("Polarization $[-S_{12}/S_{11}]$")
-    plt.axis(xmin=0,xmax=180, ymin=0,ymax=1)
+    plt.ylabel("Phase Function")
     plt.xticks(np.arange(7)*30)
-    if has_polar:
-        for i in np.arange(polwaves.size):
-           c = utils.find_closest(lambd, polwaves[i])
-           plt.plot(polar[:,c].ravel(), label=str(polwaves[i])+" $\mu$m" )
+
+    if has_phase:
+        for i in np.arange(pwaves.size):
+           c = utils.find_closest(lambd, pwaves[i])
+           plt.semilogy(phase[:,c].ravel(), label=str(pwaves[i])+" $\mu$m", color=colors[i] )
 
         prop = matplotlib.font_manager.FontProperties(size=10)
         plt.legend(prop=prop)
     else:
-        plt.text(90,0.5, 'Polarization information\n not enabled', horizontalalignment='center', verticalalignment='center')
+        plt.text(90,0.5, 'Phase function information\n not present', horizontalalignment='center', verticalalignment='center')
+    #----- now switch to show the polarization versus angle ----
+
+    ax = plt.subplot(224)
+    # move this 4th plot down slightly for visual offset
+    #pos = ax.get_position()
+    #pa = pos.get_points()
+    #pa[0,1] *= 0.5
+    #pos.set_points(pa)
+    #ax.set_position(pos)
+
+    theta = np.r_[0:180]
+    plt.xlabel("Scattering Angle [degrees]")
+    plt.ylabel("Polarization $[-S_{12}/S_{11}]$")
+    ymin = -1 if polar.min() < 0 else 1
+
+    plt.axis(xmin=0,xmax=180, ymin=ymin,ymax=1)
+    plt.xticks(np.arange(7)*30)
+    if has_polar:
+        for i in np.arange(pwaves.size):
+           c = utils.find_closest(lambd, pwaves[i])
+           plt.plot(polar[:,c].ravel(), label=str(pwaves[i])+" $\mu$m" , color=colors[i])
+
+        prop = matplotlib.font_manager.FontProperties(size=10)
+        plt.legend(prop=prop)
+    else:
+        plt.text(90,0.5, 'Polarization information\n not present', horizontalalignment='center', verticalalignment='center')
