@@ -41,7 +41,7 @@ class Paramfile(object):
     def wavelengths(self):
         """ Wavelengths in microns for SED, as specified in the parameter file """
         # compute or look up wavelength solution
-        if self.l_complete:
+        if self.l_sed_complete:
             # use log sampled wavelength range
             wavelengths_inc=np.exp( np.log(self.lambda_max/self.lambda_min)/(self.nwavelengths) )
             return self.lambda_min * wavelengths_inc**(np.arange(self.nwavelengths)+0.5)
@@ -174,7 +174,7 @@ class Paramfile(object):
         set1part('lambda_max', lineptr, 3, float) ; lineptr+=1
         set1part('l_temp', lineptr, 1, bool) # should be bool type?
         set1part('l_sed',  lineptr, 2, bool)
-        set1part('l_complete', lineptr, 3, bool) ; lineptr+=1
+        set1part('l_sed_complete', lineptr, 3, bool) ; lineptr+=1
         set1part('wavelengths_file', lineptr, 1, str) ; lineptr+=1
         set1part('l_separate', lineptr, 1, bool)
         set1part('l_stokes', lineptr, 2, bool)  ; lineptr+=1
@@ -540,7 +540,7 @@ class Paramfile(object):
 
 #Wavelength
   {self.nwavelengths:<3d} {self.lambda_min:<5.1f} {self.lambda_max:<7g}       n_lambda, lambda_min, lambda_max [microns]
-  {str_l_temp:1s} {str_l_sed:1s} {str_l_complete:1s}                   compute temperature?, compute sed?, use default wavelength grid ?
+  {str_l_temp:1s} {str_l_sed:1s} {str_l_sed_complete:1s}                   compute temperature?, compute sed?, use default wavelength grid ?
   {self.wavelengths_file}           wavelength file (if previous parameter is F)
   {str_l_separate:1s} {str_l_stokes:1s}                     separation of different contributions?, stokes parameters?
 
@@ -557,7 +557,7 @@ class Paramfile(object):
   """.format(self=self,
           str_l_temp=bstr(self.l_temp), # is there a better way to get a Bool to print as a single letter?
           str_l_sed=bstr(self.l_sed),
-          str_l_complete=bstr(self.l_complete),
+          str_l_sed_complete=bstr(self.l_sed_complete),
           str_l_separate=bstr(self.l_separate),
           str_l_stokes=bstr(self.l_stokes),
           str_RT_centered=bstr(self.RT_centered),
@@ -638,15 +638,21 @@ class Paramfile(object):
 
         template+="""
 #Molecular RT settings
-  T T T 15.              lpop, laccurate_pop, LTE, profile width
-  0.2                    v_turb (delta)
-  1                      nmol
-  co@xpol.dat 6          molecular data filename, level_max
-  1.0 50                 vmax (km.s-1), n_speed
-  T 1.e-6 abundance.fits.gz   cst molecule abundance ?, abundance, abundance file
-  T  3                   ray tracing ?,  number of lines in ray-tracing
+  {str_lpop}  {str_lacpop}  {str_lte} {self.molecular_profile_width:f}              lpop, laccurate_pop, LTE, profile width
+  {self.molecular_v_turb}                    v_turb (delta)
+  {self.molecular_nmol}                      nmol
+  {self.molecular_filename} {self.molecular_level_max}          molecular data filename, level_max
+  {self.molecular_vmax} {self.molecular_n_speed}                 vmax (km.s-1), n_speed
+  {str_molab} {self.molecular_abundance} {self.molecular_abundance_file}   cst molecule abundance ?, abundance, abundance file
+  {str_molray}  {self.molecular_raytrace_n_lines}                   ray tracing ?,  number of lines in ray-tracing
   1 2 3                  transition numbers
-      """
+      """.format(self=self,
+              str_lpop = bstr(self.l_pop),
+              str_lacpop =bstr(self.l_accurate_pop),
+              str_lte = bstr(self.l_LTE),
+              str_molab = bstr(self.l_molecular_abundance),
+              str_molray=bstr(self.l_molecular_raytrace))
+
 
         template+="""
 #Star properties
