@@ -5,15 +5,6 @@ import glob
 import astropy, astropy.io.ascii
 _log = logging.getLogger('mcfost')
 
-# this lets you put "stop()" in your code to have a debugger breakpoint
-# Old versions of ipython didn't seems to have IPython.core.debugger
-try:
-  from IPython.core.debugger import Tracer; stop = Tracer()
-except ImportError:
-  pass
-
-# some extremely simple classes to serve as structs.
-
 
 class Paramfile(object):
     """ Object class interface to MCFOST parameter files
@@ -108,6 +99,7 @@ class Paramfile(object):
 
 
         text = open(self.filename,'r').readlines()
+        lineptr = 3
 
         #--- First we define a variety of utility functions to be used below --
         # utility functions for pulling out specific items from a line
@@ -148,6 +140,15 @@ class Paramfile(object):
             return np.rec.array(tuple(vals),  dtype=mydtype)
 
 
+        def skip_blank_and_comment_lines(lineptr):
+            """ Skip past one or more blank lines and section
+            comment lines that start with'"#'"""
+            while ((text[lineptr].strip() == "") or
+                   (text[lineptr].strip().startswith("#"))):
+                reason = "blank" if text[lineptr].strip() == "" else "comment"
+                if verbose: _log.info("Skipping {} line : {}".format(reason, lineptr+1))
+                lineptr+=1
+            return lineptr
 
         self.fulltext = text
 
@@ -158,16 +159,16 @@ class Paramfile(object):
         if self.version < self._minimum_version: raise Exception('Parameter file version must be at least {ver:.2f}'.format(ver=self._minimum_version))
 
         #-- Number of photon packages --
-        lineptr = 3
         if (float(self.version) < 2.15):
             set1part( 'nbr_parallel_loop', lineptr, 1, int) ; lineptr+=1
         else:
             self.nbr_parallel_loop = 1
         set1part('nbr_photons_eq_th', lineptr, 1, float) ; lineptr+=1
         set1part('nbr_photons_lambda',lineptr, 1, float) ; lineptr+=1
-        set1part('nbr_photons_image', lineptr, 1, float) ; lineptr+=3
+        set1part('nbr_photons_image', lineptr, 1, float) ; lineptr+=1
 
         #--  Wavelength --
+        lineptr = skip_blank_and_comment_lines(lineptr)
         set1part('nwavelengths', lineptr, 1, int)
         set1part('lambda_min', lineptr, 2, float)
         set1part('lambda_max', lineptr, 3, float) ; lineptr+=1
@@ -176,24 +177,27 @@ class Paramfile(object):
         set1part('l_complete', lineptr, 3, bool) ; lineptr+=1
         set1part('wavelengths_file', lineptr, 1, str) ; lineptr+=1
         set1part('l_separate', lineptr, 1, bool)
-        set1part('l_stokes', lineptr, 2, bool)  ; lineptr+=3
-
+        set1part('l_stokes', lineptr, 2, bool)  ; lineptr+=1
 
         #-- Grid geometry and size --
+        lineptr = skip_blank_and_comment_lines(lineptr)
         set1part('grid_type', lineptr, 1, int) ; lineptr+=1
         set1part('grid_n_rad', lineptr, 1, int)
         set1part('grid_nz', lineptr, 2, int) # should be n_theta if type=spherical
         set1part('grid_n_az', lineptr, 3, int)
-        set1part('grid_n_rad_in', lineptr, 4, int) ; lineptr+=3
+        set1part('grid_n_rad_in', lineptr, 4, int) ; lineptr+=1
 
         #--  Maps (Images) --
+        lineptr = skip_blank_and_comment_lines(lineptr)
         set1part('im_nx',lineptr , 1 if float(self.version) >= 2.15 else 3, int),
         set1part('im_ny',lineptr , 2 if float(self.version) >= 2.15 else 4, int),
         if float(self.version) >= 2.15:
             set1part('im_map_size', lineptr , 3, float)
         lineptr+=1
-        set1part('MC_n_incl',lineptr , 1, int if self.version >= 2.17 else float),
-        set1part('MC_n_az',lineptr , 2, int) ; lineptr+=1
+        if float(self.version) < 3.0:
+            set1part('MC_n_incl',lineptr , 1, int if self.version >= 2.17 else float),
+            set1part('MC_n_az',lineptr , 2, int)
+            lineptr+=1
         set1part('RT_imin', lineptr, 1, float)
         set1part('RT_imax', lineptr, 2, float)
         set1part('RT_n_incl',lineptr , 3, int)
@@ -209,6 +213,7 @@ class Paramfile(object):
             self.disk_pa = 0
         lineptr+=2
 
+        lineptr = skip_blank_and_comment_lines(lineptr)
 
         # compute inclinations used for SED
         # FIXME this needs updating for SED RT mode
@@ -237,15 +242,19 @@ class Paramfile(object):
 
 
         #-- Scattering Method --
+        lineptr = skip_blank_and_comment_lines(lineptr)
         set1part('scattering_method', lineptr, 1, int) ; lineptr+=1
-        set1part('scattering_mie_hg', lineptr, 1, int) ; lineptr+=3
+        set1part('scattering_mie_hg', lineptr, 1, int) ; lineptr+=1
 
         #-- Symmetries --
+        lineptr = skip_blank_and_comment_lines(lineptr)
         set1part('l_image_symmetry', lineptr, 1, bool) ; lineptr+=1
         set1part('l_central_symmetry', lineptr, 1, bool) ; lineptr+=1
-        set1part('l_axial_symmetry', lineptr, 1, bool) ; lineptr+=3
+        set1part('l_axial_symmetry', lineptr, 1, bool) ; lineptr+=1
+        lineptr = skip_blank_and_comment_lines(lineptr)
 
         #-- Disk physics / dust global properties --
+        lineptr = skip_blank_and_comment_lines(lineptr)
         if float(self.version) >2.15:
             set1part('dust_settling', lineptr, 1, int)
         else:
@@ -266,16 +275,17 @@ class Paramfile(object):
             self.l_hydrostatic_equilibrium = False
         set1part('l_viscous_heating' ,lineptr, 1, bool)
         set1part('alpha_viscosity' ,lineptr, 2, float) ; lineptr+=1
-        lineptr+=2
 
 
         #-- Number of Zones --
         # read in the different zones
-        set1part( 'nzones' ,lineptr, 1,int) ; lineptr+=3
+        lineptr = skip_blank_and_comment_lines(lineptr)
+        set1part( 'nzones' ,lineptr, 1,int) ; lineptr+=1
 
         #-- Density Structure (1 per zone) --
         self.density_zones=[]
         for idensity in range(self.nzones):
+            lineptr = skip_blank_and_comment_lines(lineptr)
             density={}
             set1partOfDict(density, 'zone_type', lineptr, 1, int) ; lineptr+=1
             set1partOfDict(density, 'dust_mass', lineptr, 1, float)
@@ -307,38 +317,41 @@ class Paramfile(object):
                 set1partOfDict(density, 'gamma_exp', lineptr, 2, float)
             else:
                 density['gamma_exp'] = 0.0
-            lineptr+=2
+            lineptr+=1
 
             self.density_zones.append(density)
-        lineptr+=1
-        #-- Cavity --
-        set1part('cavity_flag', lineptr, 1, str) ; lineptr+=1
-        set1part('cavity_height', lineptr, 1, float)
-        set1part('cavity_ref_radius', lineptr, 2, float) ; lineptr+=1
-        set1part('cavity_flaring_exp', lineptr, 1, float) ; lineptr+=3
+
+        if float(self.version) < 3.0:
+            lineptr = skip_blank_and_comment_lines(lineptr)
+            #-- Cavity --
+            set1part('cavity_flag', lineptr, 1, str) ; lineptr+=1
+            set1part('cavity_height', lineptr, 1, float)
+            set1part('cavity_ref_radius', lineptr, 2, float) ; lineptr+=1
+            set1part('cavity_flaring_exp', lineptr, 1, float) ; lineptr+=3
 
 
         #-- Grain properties --
         # read in the dust grain properties. One set of dust props **per zone**, each of which can contain multiple species
         # These are each stored as a list of dicts per each zone.
         for idensity in range(self.nzones):
+            lineptr = skip_blank_and_comment_lines(lineptr)
             #self.density_zones['dust_nspecies']=[]
             set1partOfDict(self.density_zones[idensity], 'dust_nspecies', lineptr, 1,int)
             lineptr+=1
             self.density_zones[idensity]['dust']=[]
             for idust in range(self.density_zones[idensity]['dust_nspecies']):
+                lineptr = skip_blank_and_comment_lines(lineptr)
                 dust={}
                 if float(self.version) >= 2.12:
                     # version 2.12 or higher, allow for multi-component grains
                     if self.version >= 2.17:
-                        set1partOfDict(self.density_zones[idensity],'grain_type', lineptr, 1, str)
+                        set1partOfDict(dust,'grain_type', lineptr, 1, str)
 
                     set1partOfDict(dust, 'ncomponents',  lineptr, 2 if self.version >=2.17 else 1, int),
                     set1partOfDict(dust, 'mixing_rule',  lineptr, 3 if self.version >=2.17 else 2, int),
                     set1partOfDict(dust, 'porosity',     lineptr, 4 if self.version >=2.17 else 3, float),
                     set1partOfDict(dust, 'mass_fraction',lineptr, 5 if self.version >=2.17 else 4, float)
                     lineptr+=1
-                    #if dust['ncomponents'] >1: raise NotImplementedError("Need multi-component parsing code!")
                     components=[]
                     for icomponent in range(dust['ncomponents']):
                         this_component={}
@@ -358,7 +371,7 @@ class Paramfile(object):
                             ('ngrains', lineptr+1, 4, int))
                     for key, line, item, typ in dust_keys:
                         set1partOfDict(dust,key, line, item, typ)
-                    lineptr+=3
+                    lineptr+=2
                     
 
                 else:
@@ -376,14 +389,14 @@ class Paramfile(object):
                     i+=3
                 #add any missing keywords using defaults. This is to handle
                 # parsing earlier versions of the parameter file that lacked some settings
-                defaults = (('volume_fraction',1.0), ('grain_type', 'Mie'))
-                for defkey, defval in defaults:
-                    if defkey not in dust.keys() : dust[defkey] = defval
+                #defaults = (('volume_fraction',1), ('grain_type', 'Mie'))
+                #for defkey, defval in defaults:
+                    #if defkey not in dust.keys() : dust[defkey] = defval
 
                 self.density_zones[idensity]['dust'].append(dust)
-        lineptr+=1
 
         # molecular RT settings
+        lineptr = skip_blank_and_comment_lines(lineptr)
         set1part('l_pop', lineptr, 1, bool)
         set1part('l_accurate_pop', lineptr, 2, bool)
         set1part('l_LTE', lineptr, 3, bool)
@@ -401,9 +414,8 @@ class Paramfile(object):
         set1part('molecular_raytrace_n_lines', lineptr, 2, float); lineptr+=1
         lineptr+=1 # skip transition numbers for now
 
-        lineptr+=2
-
         #-- Star properties --
+        lineptr = skip_blank_and_comment_lines(lineptr)
         set1part('nstar', lineptr, 1,int) ; lineptr +=1
         self.stars = []
         for istar in range(self.nstar):
@@ -489,6 +501,7 @@ class Paramfile(object):
         2013-04-24 Substantial code rewrites & cleanup. Updated to version 2.17
         2014-01-12 Updated to version 2.19
         2015-06-15 Updated to version 2.20
+        2016-08-15 Updates to version 3.0
 
         """
         #par = self._dict
@@ -518,7 +531,7 @@ class Paramfile(object):
             return "T" if somebool else "F"
 
 
-        template = """2.20                      mcfost version
+        template = """3.0                       mcfost version
 
 #Number of photon packages
   {self.nbr_photons_eq_th:<10.5g}              nbr_photons_eq_th  : T computation
@@ -537,7 +550,6 @@ class Paramfile(object):
 
 #Maps
   {self.im_nx:<3d} {self.im_ny:3d} {self.im_map_size:5.1f}        grid (nx,ny), size [AU]
-  {self.MC_n_incl} {self.MC_n_az}               MC : N_bin_incl, N_bin_az
   {self.RT_imin:<4.1f}  {self.RT_imax:<4.1f}  {self.RT_n_incl:>2d} {str_RT_centered}    RT: imin, imax, n_incl, centered ?
   {self.RT_az_min:<4.1f}  {self.RT_az_max:<4.1f}  {self.RT_n_az:>2d}    RT: az_min, az_max, n_az
   {self.distance:<6.2f}                 distance (pc)
@@ -598,7 +610,8 @@ class Paramfile(object):
   {zone[surface_density_exp]:<6.3f} {zone[gamma_exp]:<6.3f}                surface density exponent (or -gamma for tappered-edge disk or volume density for envelope), usually < 0, -gamma_exp (or alpha_in & alpha_out for debris disk)
         """.format(zone = self.density_zones[zone])
 
-        template+="""
+        if float(self.version) < 3.0:
+           template+="""
 #Cavity : everything is empty above the surface
   {self.cavity_flag}                        cavity ?
   {self.cavity_height:<5.1f}  {self.cavity_ref_radius:<5.1f}             height, reference radius (AU)
