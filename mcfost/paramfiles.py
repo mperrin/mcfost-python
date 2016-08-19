@@ -2,7 +2,9 @@ import os
 import numpy as np
 import logging
 import glob
+import sys
 import astropy, astropy.io.ascii
+_PY2 = sys.version_info[0] == 2
 _log = logging.getLogger('mcfost')
 
 
@@ -132,11 +134,14 @@ class Paramfile(object):
             for item in somedict.items():
                 deftype =  type(item[1])
                 # force longer string field because the default behavior chops it to 1 character?!?
-                if deftype == str: deftype='S80'
+                # note we need to be more careful about S vs U if on Python 3
+                if deftype == str:
+                        deftype='S80' if _PY2 else 'U80'
                 dt.append( (item[0], deftype) )
 
                 vals.append(item[1])
             mydtype = np.dtype(dt)
+            print( tuple(vals), mydtype)
             return np.rec.array(tuple(vals),  dtype=mydtype)
 
 
@@ -520,7 +525,6 @@ class Paramfile(object):
         # see http://mail.scipy.org/pipermail/numpy-discussion/2013-June/066796.html
         def recarray2dict(somerecarray):
             mydict = {}
-            #print somerecarray.dtype.names
             for name, typecode in somerecarray.dtype.descr:
                 cast = float if 'f' in typecode else str
                 mydict[name] = cast(somerecarray[name])

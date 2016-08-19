@@ -56,7 +56,6 @@ def sed_chisqr(modelresults, observations, dof=1,
 #        raise ValueError("Second argument to sed_chisqr must be an Observations object")
     my_dof = dof
     if vary_distance:
-        #raise NotImplementedError("Varying distance not yet implemented")
         my_dof += 1
     if vary_AV:
         #_log.info("Computing chi^2 while allowing A_V to vary between {0} and {1} with R_V={2}".format(AV_range[0], AV_range[1], RV) )
@@ -64,7 +63,7 @@ def sed_chisqr(modelresults, observations, dof=1,
 
         import specutils
 
-    
+
     # observed wavelengths and fluxes 
     obs_wavelengths = observations.sed.wavelength
     obs_nufnu = observations.sed.nu_fnu
@@ -101,8 +100,6 @@ def sed_chisqr(modelresults, observations, dof=1,
             chi2 = ((obs_nufnu.value - est_mod_nufnu)**2 / obs_nufnu_uncert.value**2).sum()
 
         _log.info( "inclination {0} : {1:4.1f} deg has chi2 = {2:5g}".format(i, mod_inclinations[i], chi2))
-        #print "obs = ", obs_nufnu.value
-        #print "mod = ", est_mod_nufnu
 
 
         chi2s[i] = chi2
@@ -239,12 +236,9 @@ def fit_dist_extinct(wavelength, observed_sed_nuFnu, model,
 
     for i_r in np.arange(len(a_rv)):
         ext = np.asarray(utils.ccm_extinction(a_rv[i_r],wave_mu)) # Use wavelength in Angstroms
-        #print 'ext',wave_ang,ext
-        #ext[:]=0
         for i_d in np.arange(len(a_distance)):
             
             for i_a in np.arange(len(a_av)):
-                #print 'r',i_r,'d',i_d,'a',i_a,a_distance[i_d]
                 extinction = 10.0**((ext*a_av[i_a])/(-2.5))
                 vout = (np.multiply(model_sed_1pc,extinction))/(a_distance[i_d])**2 
                 
@@ -255,11 +249,9 @@ def fit_dist_extinct(wavelength, observed_sed_nuFnu, model,
                 else:   
                     chicomb = (vout-observed_sed_nuFnu)**2/(err_obs**2 + (vout*model_noise_frac)**2)
 
-                #print dof-additional_free
                 chisqs[i_d, i_a, i_r] = np.asarray(chicomb).sum()/7#(dof-additional_free-6) #Normalize to Reduced chi square.
     
     wmin = np.where(chisqs == np.nanmin(chisqs))
-    #print 'wmin',wmin
     sed_chisqr = np.nanmin(chisqs)
     best_distance = a_distance[wmin[0]]
     best_av = a_av[wmin[1]]
