@@ -141,7 +141,6 @@ class Paramfile(object):
 
                 vals.append(item[1])
             mydtype = np.dtype(dt)
-            print( tuple(vals), mydtype)
             return np.rec.array(tuple(vals),  dtype=mydtype)
 
 
