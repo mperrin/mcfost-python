@@ -54,17 +54,30 @@ def test_write_par_file(delete=False):
     # and see if we can read it back in
     pf2 = mcfost.Paramfile(outname)
 
-def test_properties():
+    # and see if the values in the output file match those in the original file.
+    for key in pf2.__dict__.keys():
+        # some particular keys we don't expect to round trip exactly identically:
+        if key in ['filename', 'fulltext']:
+            continue
+        # but all the others should:
+        assert pf[key] == pf2[key], "Did not round-trip the value for {}: {} vs {}".format(key, pf[key], pf2[key])
+
+
+def test_properties(filename=None):
     """ Test the parameter file virtual attributes which are
     implemented via function calls via @properties
     """
-    filename = os.path.join(os.path.dirname(__file__), 'ref{}.para'.format(LATEST_VER))
+    if filename is None:
+        filename = os.path.join(os.path.dirname(__file__), 'ref{}.para'.format(LATEST_VER))
     pf = mcfost.Paramfile(filename)
 
 
     wavelens = pf.wavelengths
     assert isinstance(wavelens, np.ndarray)
-    assert wavelens.size == pf.nwavelengths
+    if pf.l_sed_complete:
+        # we should only do this test if we're using default wavelengths
+        # and not reading the wvelengths from an input FITS file.
+        assert wavelens.size == pf.nwavelengths
 
 
     # test the abbreviations:

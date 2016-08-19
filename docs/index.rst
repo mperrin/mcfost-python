@@ -36,6 +36,7 @@ Contents
    observations.rst
    plots.rst
    chisqr.rst
+   testing.rst
 
 Indices and tables
 ------------------
